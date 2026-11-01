@@ -63,12 +63,170 @@ body{
 /* ---------- stage（全屏目標） ---------- */
 .stage{margin-bottom:12px}
 .stage:fullscreen{
-  background:#05060a;padding:16px;display:flex;flex-direction:column;justify-content:center;
-  gap:14px;overflow:hidden;
+  background:#05060a;padding:14px;display:flex;flex-direction:column;justify-content:center;
+  gap:12px;overflow:hidden;
 }
 .stage:fullscreen .head-sign{margin-bottom:0}
-.stage:fullscreen .screen{min-height:38vh}
-.stage:fullscreen .script{display:flex}
+.stage:fullscreen .screen{min-height:34vh}
+.stage:fullscreen .dpip-main{min-height:56vh}
+.stage:fullscreen .script{display:flex;gap:10px}
+.stage:fullscreen .script .line-item{flex:1;border-top:none;background:#111318;border-radius:10px}
+.stage:fullscreen .progress{margin-top:0}
+
+/* ==========================================================
+   九巴／龍運 DPIP 動態乘客資訊顯示屏
+   ========================================================== */
+.dpip[hidden]{display:none}
+.legacy[hidden]{display:none}
+#driverRow[hidden]{display:none}
+.dpip{margin-bottom:12px}
+
+input[type=text]{
+  width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font-size:14px;color:var(--txt);font-family:inherit;
+}
+
+.dpip-main{
+  position:relative;background:#0a0b0e;border:1px solid #22252d;border-radius:12px;
+  padding:12px 13px 10px;overflow:hidden;
+  box-shadow:inset 0 0 50px rgba(0,0,0,.85), 0 8px 28px rgba(0,0,0,.45);
+}
+.dpip-main::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px)}
+
+/* 頭部：路線號 + 目的地 */
+.dm-head{display:flex;align-items:stretch;gap:10px;margin-bottom:9px}
+.dm-route{
+  flex:0 0 auto;min-width:62px;display:flex;align-items:center;justify-content:center;
+  background:#e2231a;color:#fff;font-weight:800;font-size:27px;
+  font-family:"Courier New",ui-monospace,monospace;border-radius:6px;padding:2px 8px;
+  text-shadow:0 1px 2px rgba(0,0,0,.35);
+}
+.dm-dest{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.dm-dest-line{display:flex;align-items:baseline;gap:6px;min-width:0}
+.dm-to{font-size:13px;color:#9aa2b1;flex:0 0 auto}
+.dm-dest-zh{font-size:20px;font-weight:800;color:#fff;letter-spacing:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm-dest-en{font-size:10.5px;color:#9aa2b1;letter-spacing:1.2px;font-family:"Courier New",monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm-co{
+  flex:0 0 auto;display:flex;align-items:center;font-size:11px;font-weight:700;
+  color:#ffd100;border:1px solid #ffd100;border-radius:5px;padding:0 7px;
+}
+
+/* 紅色路線圖 */
+.dm-map{
+  position:relative;height:74px;margin:0 -3px 8px;overflow-x:auto;overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+.dm-map::-webkit-scrollbar{display:none}
+.dm-track{
+  position:relative;display:flex;align-items:flex-start;gap:0;
+  padding:0 8px;min-width:100%;height:100%;
+}
+/* 紅線 */
+.dm-track::before{
+  content:'';position:absolute;left:8px;right:8px;top:13px;height:3px;
+  background:#e2231a;box-shadow:0 0 8px rgba(226,35,26,.6);
+}
+.dm-node{
+  flex:1 0 auto;display:flex;flex-direction:column;align-items:center;
+  width:30px;position:relative;
+}
+.dm-node i{
+  width:11px;height:11px;border-radius:50%;background:#0a0b0e;
+  border:2.5px solid #e2231a;margin-top:7px;position:relative;z-index:1;transition:all .25s;
+}
+.dm-node.passed i{background:#e2231a;border-color:#e2231a}
+.dm-node.current i{
+  background:#ffd100;border-color:#ffd100;width:15px;height:15px;margin-top:5px;
+  box-shadow:0 0 10px #ffd100,0 0 20px rgba(255,209,0,.55);
+}
+.dm-node em{
+  writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);
+  font-style:normal;font-size:9px;color:#7d8493;letter-spacing:.4px;
+  margin-top:5px;max-height:52px;overflow:hidden;line-height:1.15;
+  font-family:"Courier New",monospace;
+}
+.dm-node.current em{color:#ffd100;font-weight:700}
+.dm-node.passed em{color:#5d626d}
+/* 首尾站加粗標記 */
+.dm-node.term em{color:#b9c0cd}
+
+/* 大字區 */
+.dm-big{
+  background:#14161c;border-radius:9px;padding:10px 12px 11px;text-align:center;
+  min-height:104px;display:flex;flex-direction:column;justify-content:center;
+}
+.dm-big-tag{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:5px}
+.dm-big-tag span:first-child{
+  font-size:12.5px;font-weight:700;color:#ffd100;letter-spacing:2px;
+}
+.dm-tag-en{font-size:10px;color:#8b93a3;letter-spacing:1.3px;font-family:"Courier New",monospace}
+.dm-big-zh{
+  font-size:35px;font-weight:800;color:#fff;line-height:1.2;letter-spacing:2px;
+  text-shadow:0 0 14px rgba(255,255,255,.16);
+}
+.dm-big-en{
+  font-size:12.5px;color:#9aa2b1;letter-spacing:1.5px;margin-top:5px;
+  font-family:"Courier New",monospace;
+}
+.dm-big.idle .dm-big-zh{color:#4a4f5a;text-shadow:none}
+.dm-big.idle .dm-big-en{color:#3f444d}
+.dm-big.welcome .dm-big-zh{color:#ffd100}
+
+/* 車長列 */
+.dm-driver{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-top:9px;padding-top:8px;border-top:1px solid #1e2129;
+  font-size:11px;color:#8b93a3;
+}
+.dm-drv-zh{color:#e8eaf0;font-weight:600}
+.dm-drv-en{color:#7d8493}
+.dm-staff{margin-left:auto;color:#ffd100;font-family:"Courier New",monospace;white-space:nowrap}
+
+/* 副屏：下三站 */
+.dpip-sec{
+  margin-top:10px;background:#0a0b0e;border:1px solid #22252d;border-radius:12px;
+  padding:8px 10px;display:flex;flex-direction:column;gap:6px;
+}
+.ds-row{display:flex;align-items:center;gap:10px;padding:5px 4px;border-radius:7px}
+.ds-row .ds-dot{
+  flex:0 0 auto;width:13px;height:13px;border-radius:50%;
+  border:2.5px solid #e2231a;background:#fff;position:relative;
+}
+.ds-row.cur{background:rgba(255,209,0,.09)}
+.ds-row.cur .ds-dot{
+  background:#ffd100;border-color:#ffd100;
+  box-shadow:0 0 9px rgba(255,209,0,.7);
+}
+.ds-row .ds-name{flex:1;min-width:0}
+.ds-row .ds-name b{
+  display:block;font-size:17px;font-weight:800;color:#fff;letter-spacing:.6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ds-row:not(.cur) .ds-name b{font-size:15px;color:#c3c9d4;font-weight:700}
+.ds-row .ds-name em{
+  display:block;font-style:normal;font-size:9.5px;color:#7d8493;letter-spacing:1px;
+  font-family:"Courier New",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ds-num{flex:0 0 auto;font-size:10px;color:#5d626d;font-family:"Courier New",monospace}
+
+/* 龍運用綠色 */
+.dpip.lwb .dm-route{background:#26a65b}
+.dpip.lwb .dm-track::before{background:#26a65b;box-shadow:0 0 8px rgba(38,166,91,.6)}
+.dpip.lwb .dm-node i{border-color:#26a65b}
+.dpip.lwb .dm-node.passed i{background:#26a65b;border-color:#26a65b}
+.dpip.lwb .dm-node.current i{background:#ffd100;border-color:#ffd100}
+.dpip.lwb .ds-row .ds-dot{border-color:#26a65b}
+
+/* 下車燈（DPIP 版） */
+.dpip-main .stop-lamp{
+  position:absolute;top:10px;right:11px;width:12px;height:12px;border-radius:50%;
+  background:#3a1d12;border:1px solid #552a18;transition:all .18s;z-index:2;
+}
+.dpip-main .stop-lamp.on{background:#ff3b30;box-shadow:0 0 12px #ff3b30}
+.dpip-main .stop-lamp.off{display:none}
 
 /* ---------- 車頭電牌 ---------- */
 .head-sign{
@@ -189,6 +347,14 @@ input[type=range]{width:100%;accent-color:var(--accent);height:26px}
 .btn.on{outline:2px solid var(--accent);outline-offset:1px}
 .btn[disabled]{opacity:.4;pointer-events:none}
 .hint{margin:9px 2px 0;font-size:11.5px;color:var(--dim);min-height:16px}
+
+/* ---------- 音檔區 ---------- */
+.audio-box{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 11px;margin-bottom:11px}
+.ab-head{display:flex;align-items:center;gap:8px}
+.ab-head .chk{flex:1}
+.ab-info{margin:7px 2px 0;font-size:11.5px;color:var(--dim);font-family:"Courier New",monospace;line-height:1.5}
+.ab-note{margin:5px 2px 0;font-size:10.5px;color:#6b7280;line-height:1.5}
+.ab-note code{font-family:"Courier New",monospace;color:var(--dim)}
 
 /* ---------- 沿途車站 ---------- */
 .timeline h2{margin:0 0 9px;font-size:14px;display:flex;align-items:baseline;gap:8px}
