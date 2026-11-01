@@ -48,32 +48,72 @@
       <div class="sign-op" id="signOp">—</div>
     </div>
 
-    <div class="screen-box">
-      <div class="screen-tag">
-        <span id="screenTag">待機</span>
-        <span class="tag-en" id="screenTagEn">STANDBY</span>
-        <span class="tag-bound" id="screenBound"></span>
-      </div>
-      <div class="screen idle" id="screen">
-        <div class="scanlines"></div>
-        <div class="matrix">
-          <div class="line line-zh" id="lineZh"><span><b>請先選擇路線</b></span></div>
-          <div class="line line-en" id="lineEn"><span><b>SELECT A ROUTE</b></span></div>
+    <!-- ===== 九巴／龍運：DPIP 動態顯示屏（雙屏） ===== -->
+    <div class="dpip" id="dpip" hidden>
+      <div class="dpip-main" id="dpipMain">
+        <div class="dm-head">
+          <div class="dm-route" id="dmRoute">—</div>
+          <div class="dm-dest">
+            <div class="dm-dest-line">
+              <span class="dm-to">往</span>
+              <span class="dm-dest-zh" id="dmDestZh">—</span>
+            </div>
+            <div class="dm-dest-en" id="dmDestEn">—</div>
+          </div>
+          <div class="dm-co" id="dmCo">九巴</div>
         </div>
-        <div class="stop-lamp" id="stopLamp" title="下車燈"></div>
+
+        <div class="dm-map" id="dmMap">
+          <div class="dm-track" id="dmTrack"></div>
+        </div>
+
+        <div class="dm-big">
+          <div class="dm-big-tag">
+            <span id="dmTagZh">待機</span>
+            <span class="dm-tag-en" id="dmTagEn">STANDBY</span>
+          </div>
+          <div class="dm-big-zh" id="dmBigZh">請先選擇路線</div>
+          <div class="dm-big-en" id="dmBigEn">SELECT A ROUTE</div>
+        </div>
+
+        <div class="dm-driver">
+          <span class="dm-drv-zh" id="dmDriverZh">九巴仔車長正為您服務</span>
+          <span class="dm-drv-en" id="dmDriverEn">Bus Captain KMB Boy is serving you</span>
+          <span class="dm-staff" id="dmStaff">員工編號 Staff No.: 1933</span>
+        </div>
+        <div class="stop-lamp" id="stopLampDpip" title="下車燈"></div>
       </div>
 
-      <!-- 全程進度條 -->
-      <div class="progress" id="progress">
-        <div class="pbar"><i id="pbarFill"></i><u id="pbarDot"></u></div>
-        <div class="pmeta">
-          <span id="progressText">尚未開出</span>
-          <span class="dots" id="runDots"></span>
-        </div>
-      </div>
+      <div class="dpip-sec" id="dpipSec"></div>
+    </div>
 
-      <!-- 副屏：接下來 3 站 -->
-      <div class="next3" id="next3"></div>
+    <!-- ===== 城巴：走馬燈顯示屏 ===== -->
+    <div class="legacy" id="legacy">
+      <div class="screen-box">
+        <div class="screen-tag">
+          <span id="screenTag">待機</span>
+          <span class="tag-en" id="screenTagEn">STANDBY</span>
+          <span class="tag-bound" id="screenBound"></span>
+        </div>
+        <div class="screen idle" id="screen">
+          <div class="scanlines"></div>
+          <div class="matrix">
+            <div class="line line-zh" id="lineZh"><span><b>請先選擇路線</b></span></div>
+            <div class="line line-en" id="lineEn"><span><b>SELECT A ROUTE</b></span></div>
+          </div>
+          <div class="stop-lamp" id="stopLamp" title="下車燈"></div>
+        </div>
+        <div class="next3" id="next3"></div>
+      </div>
+    </div>
+
+    <!-- 全程進度條（兩者共用） -->
+    <div class="progress" id="progress">
+      <div class="pbar"><i id="pbarFill"></i><u id="pbarDot"></u></div>
+      <div class="pmeta">
+        <span id="progressText">尚未開出</span>
+        <span class="dots" id="runDots"></span>
+      </div>
     </div>
 
     <div class="script" id="script">
@@ -131,6 +171,26 @@
       </label>
     </div>
 
+    <div class="row row-2" id="driverRow">
+      <label class="fld">
+        <span>車長姓名</span>
+        <input type="text" id="driverName" value="陳大文" maxlength="10" autocomplete="off">
+      </label>
+      <label class="fld">
+        <span>員工編號</span>
+        <input type="text" id="staffNo" value="1933" maxlength="8" autocomplete="off">
+      </label>
+    </div>
+
+    <div class="audio-box">
+      <div class="ab-head">
+        <label class="chk"><input type="checkbox" id="useAudio" checked><span>使用真實報站音檔</span></label>
+        <button class="mini" id="btnAudio">↻ 重新載入</button>
+      </div>
+      <p class="ab-info" id="audioInfo">尚未載入音檔</p>
+      <p class="ab-note">音檔放進 <code>audio/</code> 並維護 <code>audio/manifest.json</code>；缺檔的段落自動退回語音合成。</p>
+    </div>
+
     <div class="toggles">
       <label class="chk"><input type="checkbox" id="langCantonese" checked><span>廣東話</span></label>
       <label class="chk"><input type="checkbox" id="langEnglish" checked><span>English</span></label>
@@ -163,13 +223,14 @@
 
   <footer class="foot">
     <p>報站用語參考九巴／龍運（BM-2013-KMB）與城巴／新巴（Telargo）公開廣播稿格式；路線與站名來自政府公開資料（data.etabus.gov.hk、rt.data.gov.hk），語音由瀏覽器即時合成，非官方錄音。離線或連線失敗時自動改用內建路線。</p>
-    <p class="mono">內建離線路線可在 <code>assets/js/routes.js</code> 增修。</p>
+    <p class="mono">內建離線路線可在 <code>assets/js/routes.js</code> 增修；真實報站音檔放進 <code>audio/</code> 並執行 <code>node tools/gen-manifest.js</code>。音檔著作權屬各巴士公司，僅供個人學習與非商業用途。</p>
   </footer>
 </div>
 
 <script src="assets/js/routes.js"></script>
 <script src="assets/js/data.js"></script>
 <script src="assets/js/speech.js"></script>
+<script src="assets/js/audio.js"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>
