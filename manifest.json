@@ -1,0 +1,19 @@
+{
+  "_說明": "音檔索引。把音檔放進 audio/ 目錄後，用 node tools/gen-manifest.js 自動產生 files 清單；也可手動增修。",
+  "_命名規則": "車站：<車站編號去掉橫線>_YUE.mp3（_EN / _CN）；請緊握扶手：ATTEN10010_YUE.mp3；歡迎辭：<起點站編號><路線號>W_YUE.mp3；到達終點：<終點站編號><路線號>G_YUE.mp3",
+
+  "dir": "audio/",
+
+  "prefix": "name",
+
+  "phrases": {
+    "nextStop": "",
+    "interchange": ""
+  },
+
+  "files": [
+    "ATTEN10010_YUE.mp3",
+    "ATTEN10010_EN.mp3",
+    "ATTEN10010_CN.mp3"
+  ]
+}
