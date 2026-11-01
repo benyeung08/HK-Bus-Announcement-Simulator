@@ -570,6 +570,189 @@ kbd{display:inline-block;min-width:22px;text-align:center;background:#252932;bor
 }
 
 /* ==========================================================
+   整站主題 — 九巴／龍運：BM-2013-KMB 報站器機櫃
+   ========================================================== */
+.mode-kmb body,.mode-kmb{background:#101216}
+.cabbed .wrap{
+  background:linear-gradient(180deg,#25292f,#1a1d22);
+  border:1px solid #343a44;border-radius:16px;
+  padding:14px 13px 18px;max-width:560px;
+  box-shadow:0 16px 44px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05);
+  position:relative;
+}
+/* 四角螺絲 */
+.cabbed .wrap::before,.cabbed .wrap::after{
+  content:'';position:absolute;width:7px;height:7px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #6a7180, #2c3037 70%);
+  box-shadow:inset 0 0 2px #000;
+}
+.cabbed .wrap::before{top:9px;left:9px}
+.cabbed .wrap::after{top:9px;right:9px}
+.cabbed .screw-l,.cabbed .screw-r{
+  position:absolute;bottom:9px;width:7px;height:7px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #6a7180, #2c3037 70%);
+}
+.cabbed .screw-l{left:9px}
+.cabbed .screw-r{right:9px}
+
+/* 機櫃內所有卡片改為面板 */
+.cabbed .card{
+  background:linear-gradient(180deg,#1e2127,#15181c);
+  border:1px solid #31363f;border-radius:11px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+.mode-kmb .head{padding:2px 2px 10px}
+.mode-kmb .head-title h1{font-size:16px;letter-spacing:1px;color:#e8eaf0}
+.mode-kmb .sub{font-size:11.5px}
+.mode-kmb .status{color:#7d8493}
+
+/* 機櫃銘牌 */
+.cab-plate{
+  display:flex;align-items:baseline;gap:8px;
+  font-size:11px;font-weight:700;letter-spacing:2px;color:#c8ced9;
+  padding-bottom:9px;margin-bottom:10px;border-bottom:1px solid #31363f;
+}
+.cab-plate span{
+  font-size:9px;font-weight:400;letter-spacing:1.5px;color:#6b7280;
+  font-family:"Courier New",monospace;
+}
+
+/* ---------- LED 點陣顯示屏 ---------- */
+.led-panel{position:relative;background:#07080a;overflow:hidden}
+.led-grid{
+  position:absolute;inset:0;pointer-events:none;z-index:3;
+  background-image:
+    linear-gradient(90deg, rgba(0,0,0,.62) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(0,0,0,.62) 1px, transparent 1px);
+  background-size:3px 3px;
+}
+.led-panel::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:radial-gradient(120% 90% at 50% 50%, transparent 40%, rgba(0,0,0,.75) 100%);
+}
+/* 車頭電牌：橙色點陣字 */
+.mode-kmb .head-sign{
+  background:#07080a;border:1px solid #2b2f37;border-radius:10px;
+  padding:13px 14px;box-shadow:inset 0 0 26px rgba(0,0,0,.9);
+}
+.mode-kmb .sign-route{
+  background:transparent;color:#ff8c1a;font-size:31px;
+  text-shadow:0 0 7px #ff8c1a,0 0 16px rgba(255,140,26,.55);
+  border:1px solid rgba(255,140,26,.35);border-radius:5px;
+}
+.mode-kmb .sign-dest-zh{
+  color:#ff8c1a;text-shadow:0 0 7px #ff8c1a,0 0 16px rgba(255,140,26,.5);
+  font-size:21px;letter-spacing:3px;
+}
+.mode-kmb .sign-dest-en{color:#b0652a;letter-spacing:2px;font-size:10.5px}
+.mode-kmb .sign-op{
+  background:transparent;color:#ff8c1a;border:1px solid rgba(255,140,26,.45);
+  text-shadow:0 0 6px rgba(255,140,26,.6);font-size:10.5px;letter-spacing:1px;
+}
+.mode-kmb .head-sign::after{display:none}
+
+/* 車廂 LED 報站屏（走馬燈） */
+.led-cab{
+  border:1px solid #2b2f37;border-radius:10px;padding:11px 13px 10px;
+  margin-bottom:11px;box-shadow:inset 0 0 26px rgba(0,0,0,.9);
+}
+.lc-row{display:flex;align-items:baseline;gap:10px;min-width:0}
+.lc-tag{
+  flex:0 0 auto;font-size:12px;font-weight:700;color:#ff8c1a;letter-spacing:2px;
+  text-shadow:0 0 7px rgba(255,140,26,.7);
+}
+.lc-name{
+  flex:1;min-width:0;font-size:22px;font-weight:800;color:#ff8c1a;letter-spacing:2px;
+  text-shadow:0 0 8px #ff8c1a,0 0 18px rgba(255,140,26,.5);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lc-en{
+  font-size:11px;color:#b0652a;letter-spacing:2px;margin-top:4px;
+  font-family:"Courier New",monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.led-cab.idle .lc-name,.led-cab.idle .lc-tag{color:#5a3c1c;text-shadow:none}
+.led-cab.idle .lc-en{color:#4a3218}
+.lc-lamp{
+  position:absolute;top:9px;right:11px;width:11px;height:11px;border-radius:50%;
+  background:#3a1d12;border:1px solid #552a18;z-index:4;transition:all .18s;
+}
+.lc-lamp.on{background:#ff3b30;box-shadow:0 0 12px #ff3b30}
+.lc-lamp.off{display:none}
+
+/* ==========================================================
+   整站主題 — 城巴：LECIP 輕觸式控制台
+   ========================================================== */
+.mode-ctb body,.mode-ctb{background:#0f1317}
+.mode-ctb .head-title h1{font-size:16px;letter-spacing:1px;color:#e8eaf0}
+
+/* 控制台銘牌 */
+.console-plate{display:none}
+.mode-ctb .console-plate{
+  display:flex;flex-direction:column;gap:3px;
+  padding:9px 12px;margin-bottom:11px;border-radius:10px;
+  background:linear-gradient(180deg,#2a2f37,#191d22);
+  border:1px solid #3a4150;border-left:3px solid #f5c518;
+}
+.cp-main{font-size:12.5px;font-weight:800;letter-spacing:1.6px;color:#e8eaf0}
+.cp-main em{
+  font-style:normal;font-size:8.5px;font-weight:400;letter-spacing:1.4px;color:#7d8493;
+  font-family:"Courier New",monospace;margin-left:5px;
+}
+.cp-sub{font-size:9.5px;color:#7d8493;letter-spacing:1px;font-family:"Courier New",monospace}
+
+/* 城巴車廂 LED 顯示屏 MS-315A-CTB */
+.mode-ctb .screen{
+  background:#07080a;border:1px solid #2b2f37;border-radius:9px;
+  box-shadow:inset 0 0 26px rgba(0,0,0,.9);
+}
+.mode-ctb .line-zh b{
+  color:#ffb020;text-shadow:0 0 7px #ffb020,0 0 16px rgba(255,176,32,.5);
+  font-size:26px;letter-spacing:3px;
+}
+.mode-ctb .line-en b{
+  color:#c07d18;letter-spacing:2px;
+  text-shadow:0 0 6px rgba(255,176,32,.35);
+}
+.mode-ctb .screen.idle .line-zh b{color:#5a3c1c;text-shadow:none}
+.mode-ctb .screen.idle .line-en b{color:#4a3218;text-shadow:none}
+.mode-ctb .screen-tag span{color:#ffb020;letter-spacing:2px}
+.mode-ctb .next3 li b{color:#ffd88a}
+.mode-ctb .next3 li.cur b{color:#ffb020}
+
+/* 車頭電牌：城巴主題用琥珀色點陣字 */
+.mode-ctb .head-sign{
+  background:#07080a;border:1px solid #2b2f37;border-radius:10px;
+  padding:13px 14px;box-shadow:inset 0 0 26px rgba(0,0,0,.9);
+}
+.mode-ctb .head-sign::after{display:none}
+.mode-ctb .sign-route{
+  background:transparent;color:#ffb020;font-size:31px;
+  text-shadow:0 0 7px #ffb020,0 0 16px rgba(255,176,32,.55);
+  border:1px solid rgba(255,176,32,.35);border-radius:5px;
+}
+.mode-ctb .sign-dest-zh{
+  color:#ffb020;font-size:21px;letter-spacing:3px;
+  text-shadow:0 0 7px #ffb020,0 0 16px rgba(255,176,32,.5);
+}
+.mode-ctb .sign-dest-en{color:#b07d24;letter-spacing:2px}
+.mode-ctb .sign-op{
+  background:transparent;color:#ffb020;border:1px solid rgba(255,176,32,.45);
+  text-shadow:0 0 6px rgba(255,176,32,.6);font-size:10.5px;letter-spacing:1px;
+}
+
+/* 平板在城巴主題下更突出 */
+.mode-ctb .tab-bezel{
+  border-radius:14px;padding:11px;
+  box-shadow:0 14px 34px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07);
+}
+.mode-ctb .tab-screen{min-height:238px}
+.mode-ctb .cm-route{color:#ffd54a}
+.mode-ctb .cn-tag{background:#ffd54a}
+.mode-ctb .cm-list li.cur{background:rgba(245,197,24,.15);color:#ffd54a}
+.mode-ctb .cm-list li.cur .ci{background:#ffd54a}
+
+/* ==========================================================
    城巴 LECIP 報站系統 — 七吋輕觸式控制器
    ========================================================== */
 .ctbrig[hidden]{display:none}
