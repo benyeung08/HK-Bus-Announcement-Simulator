@@ -375,6 +375,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:26px}
 
 /* ---------- 快捷鍵 ---------- */
 .keys h2{margin:0 0 9px;font-size:14px}
+.keys h2.h2b{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:13px}
 .keygrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:12px;color:var(--dim)}
 kbd{display:inline-block;min-width:22px;text-align:center;background:#252932;border:1px solid #333846;
   border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-family:"Courier New",monospace;
@@ -388,4 +389,372 @@ kbd{display:inline-block;min-width:22px;text-align:center;background:#252932;bor
   :root{--screen-font:28px}
   .btn{font-size:12.5px;padding:11px 6px}
   .sign-route{font-size:26px;min-width:64px}
+}
+
+/* ==========================================================
+   BM-2013-KMB 報站器整機（九巴／龍運）
+   ========================================================== */
+.rig[hidden]{display:none}
+.rig{display:flex;flex-direction:column;gap:11px;margin-bottom:12px}
+
+/* ---------- 3站模式：主屏直接列三站 ---------- */
+.dm-three{display:none}
+.dpip.mode3 .dm-big{display:none}
+.dpip.mode3 .dm-three{
+  display:flex;flex-direction:column;gap:5px;
+  background:#14161c;border-radius:9px;padding:9px 11px;min-height:104px;justify-content:center;
+}
+.dt-row{display:flex;align-items:center;gap:10px}
+.dt-row .dt-dot{
+  flex:0 0 auto;width:12px;height:12px;border-radius:50%;
+  border:2.5px solid #e2231a;background:#fff;
+}
+.dt-row.cur .dt-dot{
+  background:#ffd100;border-color:#ffd100;width:14px;height:14px;
+  box-shadow:0 0 10px #ffd100,0 0 20px rgba(255,209,0,.5);
+}
+.dt-row .dt-name{flex:1;min-width:0}
+.dt-row .dt-name b{
+  display:block;font-size:19px;font-weight:800;color:#fff;letter-spacing:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.dt-row:not(.cur) .dt-name b{font-size:15px;color:#b6bcc8;font-weight:700}
+.dt-row .dt-name em{
+  display:block;font-style:normal;font-size:9.5px;color:#7d8493;letter-spacing:1px;
+  font-family:"Courier New",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.dt-row .dt-idx{flex:0 0 auto;font-size:10px;color:#5d626d;font-family:"Courier New",monospace}
+.dpip.lwb.mode3 .dt-row .dt-dot{border-color:#26a65b}
+
+/* ---------- 主機面板 ---------- */
+.host{
+  background:linear-gradient(180deg,#22252c,#14161b);
+  border:1px solid #2e323b;border-radius:12px;padding:10px 11px 9px;
+  box-shadow:0 10px 26px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.host-head{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.host-model{
+  font-size:11px;font-weight:700;letter-spacing:1.5px;color:#c8ced9;
+  font-family:"Courier New",monospace;background:#0d0f13;border:1px solid #333843;
+  border-radius:5px;padding:3px 8px;
+}
+.host-test{
+  margin-left:auto;display:inline-flex;align-items:center;gap:5px;
+  font-size:10.5px;color:#ffb020;letter-spacing:1px;
+}
+.host-test i{width:6px;height:6px;border-radius:50%;background:#ffb020;
+  box-shadow:0 0 7px #ffb020;animation:pulse 1.4s infinite}
+.host-body{display:flex;gap:9px}
+.host-left{flex:0 0 47%;display:flex;flex-direction:column;gap:7px}
+.host-right{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+
+/* LCD */
+.host-lcd{
+  background:linear-gradient(180deg,#0e2a1c,#071410);
+  border:1px solid #1d3a2a;border-radius:7px;padding:7px 9px;
+  display:flex;align-items:baseline;gap:7px;min-height:42px;
+  box-shadow:inset 0 0 18px rgba(0,0,0,.7);
+}
+.host-lcd span{
+  font-family:"Courier New",ui-monospace,monospace;font-size:19px;font-weight:800;
+  color:#3ddc84;text-shadow:0 0 9px rgba(61,220,132,.6);letter-spacing:1.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.host-lcd em{
+  font-style:normal;font-size:9px;color:#1f7a48;letter-spacing:1px;
+  font-family:"Courier New",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+/* 接口 */
+.host-ports{display:flex;gap:6px}
+.port{
+  font-size:8.5px;font-weight:700;letter-spacing:.8px;font-family:"Courier New",monospace;
+  border-radius:4px;padding:2px 6px;border:1px solid;
+}
+.port.pwr{color:#e2231a;border-color:#5c211c;background:#1a0f0e}
+.port.usb{color:#4da3ff;border-color:#1e3550;background:#0d1520}
+
+/* 數字鍵盤 */
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.keypad button{
+  font-family:"Courier New",ui-monospace,monospace;font-size:15px;font-weight:700;
+  color:#dfe3ea;background:linear-gradient(180deg,#3a3f49,#282c34);
+  border:1px solid #4a505c;border-bottom-width:2px;border-radius:6px;
+  padding:8px 0;cursor:pointer;transition:transform .08s,background .12s;
+}
+.keypad button:active{transform:translateY(1px);background:#4a5060}
+.keypad .k-fn{font-size:10.5px;color:#ffd100;background:linear-gradient(180deg,#3d3a2a,#2a2820);border-color:#5a5440}
+.keypad .ent{color:#3ddc84;background:linear-gradient(180deg,#1e3a2a,#132419);border-color:#2c5a3f}
+
+/* 功能鍵 */
+.fn-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.fn{
+  font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.5px;
+  padding:9px 4px;border-radius:7px;cursor:pointer;color:#fff;
+  border:1px solid rgba(0,0,0,.35);border-bottom-width:3px;transition:transform .08s;
+}
+.fn:active{transform:translateY(2px);border-bottom-width:1px}
+.fn.g{background:linear-gradient(180deg,#3fbf6f,#26a65b);border-color:#1c7a41}
+.fn.o{background:linear-gradient(180deg,#ff9b3d,#f07c1a);border-color:#b3560d}
+.fn.b{background:linear-gradient(180deg,#5aa9f5,#3b82d6);border-color:#255a94}
+.fn.r{background:linear-gradient(180deg,#f2605c,#d93b36);border-color:#96211d}
+.fn.n{background:linear-gradient(180deg,#5b6270,#414755);border-color:#2c313b}
+
+/* 方向鍵 */
+.dpad{
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
+  gap:4px;margin-top:2px;max-width:150px;margin-left:auto;margin-right:auto;
+}
+.dpad button{
+  font-size:12px;color:#dfe3ea;background:linear-gradient(180deg,#3a3f49,#282c34);
+  border:1px solid #4a505c;border-bottom-width:2px;border-radius:6px;
+  padding:6px 0;cursor:pointer;line-height:1;
+}
+.dpad button:active{transform:translateY(1px)}
+.dpad [data-dir=up]{grid-column:2;grid-row:1}
+.dpad [data-dir=left]{grid-column:1;grid-row:2}
+.dpad [data-dir=down]{grid-column:2;grid-row:2}
+.dpad [data-dir=right]{grid-column:3;grid-row:2}
+.host-hint{margin:8px 2px 0;font-size:10px;color:#6b7280;line-height:1.5}
+.host-hint b{color:#9aa2b1}
+
+/* ---------- 遙控器 ---------- */
+.remote{
+  background:linear-gradient(180deg,#2b2f37,#171a20);
+  border:1px solid #343945;border-radius:11px;padding:9px 11px 10px;
+  display:flex;align-items:center;gap:11px;
+  box-shadow:0 8px 20px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.rm-model{
+  font-size:9.5px;font-weight:700;letter-spacing:1.2px;color:#9099a8;
+  font-family:"Courier New",monospace;writing-mode:horizontal-tb;flex:0 0 auto;
+  max-width:74px;line-height:1.35;
+}
+.rm-btns{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.rm{
+  font-family:inherit;font-size:11px;font-weight:700;line-height:1.25;
+  color:#2b2f36;background:linear-gradient(180deg,#fdfdfd,#dcdfe5);
+  border:1px solid #b9bec7;border-bottom-width:3px;border-radius:50%/38%;
+  padding:9px 2px;cursor:pointer;min-height:52px;
+  box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .08s;
+}
+.rm:active{transform:translateY(2px);border-bottom-width:1px}
+
+/* ---------- 車長設定表單 ---------- */
+.rig-form{
+  background:#0a0b0e;border:1px solid #22252d;border-radius:11px;padding:10px 11px;
+}
+.rf-row{display:flex;gap:7px;align-items:flex-end;flex-wrap:wrap}
+.rf{flex:1;min-width:74px;display:flex;flex-direction:column;gap:4px}
+.rf span{font-size:10px;color:#8b93a3;letter-spacing:.5px}
+.rf input{
+  width:100%;background:#14161c;border:1px solid #2e323b;border-radius:7px;
+  padding:8px 9px;font-size:13.5px;color:var(--txt);font-family:inherit;
+}
+.rf-ok{
+  flex:0 0 auto;font-family:inherit;font-size:12.5px;font-weight:700;
+  background:linear-gradient(180deg,#3fbf6f,#26a65b);color:#fff;
+  border:1px solid #1c7a41;border-bottom-width:3px;border-radius:7px;
+  padding:9px 14px;cursor:pointer;
+}
+.rf-ok:active{transform:translateY(2px);border-bottom-width:1px}
+.rf-mode{margin-top:9px;padding-top:9px;border-top:1px solid #1a1d24;align-items:center}
+.rf-label{font-size:11px;color:#8b93a3;flex:0 0 auto}
+.rf-mode .chk{background:#14161c;border-color:#2e323b}
+
+@media (max-width:380px){
+  .host-body{gap:7px}
+  .host-left{flex:0 0 45%}
+  .fn{font-size:11px;padding:8px 2px}
+  .rm-btns{gap:5px}
+  .rm{font-size:10px;min-height:48px}
+}
+
+/* ==========================================================
+   城巴 LECIP 報站系統 — 七吋輕觸式控制器
+   ========================================================== */
+.ctbrig[hidden]{display:none}
+.ctbrig{display:flex;flex-direction:column;gap:11px;margin-bottom:12px}
+.legacy[hidden]{display:none}
+
+/* ---------- 平板外觀 ---------- */
+.tab{display:flex;flex-direction:column;gap:7px}
+.tab-bezel{
+  background:linear-gradient(180deg,#2a2e36,#15171c);
+  border:1px solid #383e49;border-radius:16px;padding:9px;
+  box-shadow:0 12px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+/* Android 狀態欄 */
+.tab-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:2px 8px 6px;font-family:"Courier New",monospace;font-size:10px;color:#8b93a3;
+}
+.tb-icons{display:inline-flex;gap:7px;align-items:center}
+.tb-icons i{font-style:normal;font-size:9px}
+.ic-gps{color:#3ddc84}
+.ic-net{color:#c8ced9;font-weight:700}
+.ic-bat{color:#3ddc84}
+
+/* 螢幕 */
+.tab-screen{
+  position:relative;background:#05070a;border-radius:9px;overflow:hidden;
+  min-height:214px;display:flex;flex-direction:column;
+  box-shadow:inset 0 0 28px rgba(0,0,0,.9);
+  border:1px solid #0c0f14;
+}
+
+/* 待機：城巴標誌 */
+.ctb-logo{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:7px;padding:16px;
+}
+.ctb-logo[hidden]{display:none}
+.lg-mark{
+  font-size:30px;font-weight:800;letter-spacing:-.5px;
+  color:#f5c518;text-shadow:0 0 18px rgba(245,197,24,.4);
+  font-family:Arial,"Helvetica Neue",sans-serif;
+}
+.ctb-logo em{
+  font-style:normal;font-size:11px;color:#8b93a3;letter-spacing:3px;
+}
+.ctb-logo small{font-size:10px;color:#5d626d;letter-spacing:1px;margin-top:2px}
+
+/* 主畫面 */
+.ctb-main{flex:1;display:flex;flex-direction:column;min-height:0}
+.ctb-main[hidden]{display:none}
+.cm-head{
+  padding:8px 10px 7px;border-bottom:1px solid #161a21;
+  background:linear-gradient(180deg,#0e1116,#080a0e);
+}
+.cm-rline{display:flex;align-items:baseline;gap:8px}
+.cm-route{
+  font-family:"Courier New",ui-monospace,monospace;font-size:23px;font-weight:800;
+  color:#f5c518;letter-spacing:1px;
+}
+.cm-dir{
+  font-size:9.5px;color:#8b93a3;border:1px solid #2a2f38;border-radius:4px;padding:1px 5px;
+}
+.cm-dest{display:flex;flex-direction:column;margin-top:2px;min-width:0}
+.cm-dest b{
+  font-size:13px;color:#e8eaf0;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cm-dest em{
+  font-style:normal;font-size:9px;color:#6b7280;letter-spacing:1px;
+  font-family:"Courier New",monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* 當前播報 */
+.cm-now{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  background:#0d1015;border-bottom:1px solid #161a21;
+}
+.cn-ico{font-size:16px;line-height:1;flex:0 0 auto}
+.cn-tag{
+  font-size:9.5px;color:#05070a;background:#f5c518;font-weight:700;
+  border-radius:4px;padding:1px 6px;flex:0 0 auto;letter-spacing:.5px;
+}
+.cn-name{
+  flex:1;min-width:0;font-size:13px;color:#e8eaf0;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* 站列表 */
+.cm-list{
+  list-style:none;margin:0;padding:5px 6px;overflow-y:auto;flex:1;
+  max-height:150px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;
+}
+.cm-list::-webkit-scrollbar{width:4px}
+.cm-list::-webkit-scrollbar-thumb{background:#2a2f38;border-radius:2px}
+.cm-list li{
+  display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;
+  font-size:12px;color:#7d8493;cursor:pointer;
+}
+.cm-list li .ci{
+  flex:0 0 18px;height:18px;line-height:18px;text-align:center;font-size:9px;
+  border-radius:50%;background:#1a1e25;font-family:"Courier New",monospace;
+}
+.cm-list li .cn{flex:1;min-width:0}
+.cm-list li .cn em{
+  display:block;font-style:normal;font-size:8.5px;opacity:.6;
+  font-family:"Courier New",monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cm-list li.passed{opacity:.34}
+.cm-list li.cur{background:rgba(245,197,24,.13);color:#f5c518;font-weight:700}
+.cm-list li.cur .ci{background:#f5c518;color:#05070a}
+
+/* ---------- 觸控功能鍵 ---------- */
+.tab-keys{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.tk-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tk{
+  font-family:inherit;font-size:11px;font-weight:700;color:#dfe3ea;
+  background:linear-gradient(180deg,#343a44,#23272f);
+  border:1px solid #454c58;border-radius:9px;
+  padding:8px 2px;cursor:pointer;transition:transform .08s,background .12s;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  min-height:46px;justify-content:center;
+}
+.tk:active{transform:scale(.95);background:#454c58}
+.tk i{font-style:normal;font-size:15px;line-height:1}
+.tk span{font-size:9.5px;letter-spacing:.3px}
+.tk.s{font-size:11px;min-height:38px;flex-direction:row}
+/* 圖案鍵配色 */
+.tk.m-bus{background:linear-gradient(180deg,#2f4a3a,#1d2f26);border-color:#3d6b52}
+.tk.m-bus span{color:#8fd8ac}
+.tk.m-stop{background:linear-gradient(180deg,#4a3f2a,#2f291c);border-color:#6b5a3d}
+.tk.m-stop span{color:#e0c58a}
+.tk.m-info{background:linear-gradient(180deg,#2a3a4a,#1c2833);border-color:#3d5670}
+.tk.m-info span{color:#9cc4e8}
+.tk.m-alert{background:linear-gradient(180deg,#4a2f2f,#301f1f);border-color:#6b3d3d}
+.tk.m-alert span{color:#e8a09c}
+.tk.on{outline:2px solid #f5c518;outline-offset:1px}
+
+.tab-model{margin:1px 2px 0;font-size:9.5px;color:#6b7280;line-height:1.5;text-align:center}
+
+/* ---------- 路線輸入鍵盤 ---------- */
+.route-pad[hidden]{display:none}
+.route-pad{
+  background:linear-gradient(180deg,#22252c,#14161b);
+  border:1px solid #2e323b;border-radius:12px;padding:10px 11px;
+}
+.rp-head{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.rp-title{font-size:11px;color:#8b93a3;letter-spacing:1px}
+.rp-disp{
+  flex:1;text-align:right;font-family:"Courier New",ui-monospace,monospace;
+  font-size:19px;font-weight:800;color:#f5c518;letter-spacing:2px;
+  background:#05070a;border:1px solid #2a2f38;border-radius:6px;padding:4px 9px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.rp-pages{display:flex;gap:6px;margin-bottom:7px}
+.rp-page{
+  font-family:inherit;font-size:11px;padding:5px 12px;border-radius:7px;cursor:pointer;
+  background:#23272f;color:#8b93a3;border:1px solid #3a404b;
+}
+.rp-page.on{background:#f5c518;color:#05070a;border-color:transparent;font-weight:700}
+.rp-keys{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.rp-keys.abc{grid-template-columns:repeat(7,1fr)}
+.rp-k{
+  font-family:"Courier New",ui-monospace,monospace;font-size:14px;font-weight:700;
+  color:#dfe3ea;background:linear-gradient(180deg,#3a3f49,#282c34);
+  border:1px solid #4a505c;border-bottom-width:2px;border-radius:6px;
+  padding:8px 0;cursor:pointer;
+}
+.rp-k:active{transform:translateY(1px);background:#4a5060}
+.rp-foot{display:flex;gap:6px;margin-top:8px}
+.rp-b{
+  flex:1;font-family:inherit;font-size:12px;font-weight:700;padding:9px 4px;
+  border-radius:7px;cursor:pointer;color:#dfe3ea;
+  background:linear-gradient(180deg,#343a44,#23272f);
+  border:1px solid #454c58;border-bottom-width:2px;
+}
+.rp-b:active{transform:translateY(1px);border-bottom-width:1px}
+.rp-b.ok{background:linear-gradient(180deg,#f7d34a,#e0b310);color:#05070a;border-color:#a8860b}
+
+@media (max-width:380px){
+  .tk{font-size:10px;min-height:42px}
+  .tk span{font-size:9px}
+  .rp-keys{gap:4px}
+  .rp-k{font-size:12.5px;padding:7px 0}
 }
