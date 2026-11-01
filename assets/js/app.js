@@ -1,158 +1,71 @@
 /* ============================================================
-   香港巴士報站模擬器 — 主邏輯
-   報站流程：開出總站（歡迎辭）→ 沿途「下一站」廣播 → 到站 → 終點站廣播
-   廣播順序依實車：【廣東話】→【英文】→【普通話】
+   香港巴士報站模擬器 — 主程式
+   流程：開出總站（歡迎辭）→「下一站」廣播 → 到站 → … → 終點站
+   廣播順序依實車：【廣東話】→【English】→【普通話】
    ============================================================ */
 (function () {
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
 
   const el = {
-    routeSel: $('#routeSel'),
+    status: $('#status'), hint: $('#hint'),
+    q: $('#q'), co: $('#co'), results: $('#results'), favs: $('#favs'),
+    stage: $('#stage'),
     signRoute: $('#signRoute'), signDestZh: $('#signDestZh'),
     signDestEn: $('#signDestEn'), signOp: $('#signOp'),
     screen: $('#screen'), lineZh: $('#lineZh'), lineEn: $('#lineEn'),
-    screenTag: $('#screenTag'), screenTagEn: $('#screenTagEn'),
+    screenTag: $('#screenTag'), screenTagEn: $('#screenTagEn'), screenBound: $('#screenBound'),
+    stopLamp: $('#stopLamp'),
     progressText: $('#progressText'), runDots: $('#runDots'),
+    pbarFill: $('#pbarFill'), pbarDot: $('#pbarDot'), next3: $('#next3'),
     txt: { cantonese: $('#txtCantonese'), english: $('#txtEnglish'), putonghua: $('#txtPutonghua') },
     stopList: $('#stopList'),
+    crName: $('#crName'), crBound: $('#crBound'),
     rate: $('#rate'), rateVal: $('#rateVal'), vol: $('#vol'), volVal: $('#volVal'),
-    hint: $('#hint'),
-    btnStart: $('#btnStart'), btnNext: $('#btnNext'), btnTerminus: $('#btnTerminus'),
-    btnAuto: $('#btnAuto'), btnBell: $('#btnBell'), btnStop: $('#btnStop')
+    gap: $('#gap'), gapVal: $('#gapVal'),
+    btnStart: $('#btnStart'), btnNext: $('#btnNext'), btnPrev: $('#btnPrev'),
+    btnTerminus: $('#btnTerminus'), btnAuto: $('#btnAuto'), btnBell: $('#btnBell'),
+    btnStop: $('#btnStop'), btnReset: $('#btnReset'), btnFlip: $('#btnFlip'),
+    btnFav: $('#btnFav'), btnFs: $('#btnFs')
   };
 
   const LANGS = ['cantonese', 'english', 'putonghua'];
-  let route = window.ROUTES[0];
-  let idx = -1;              // -1 = 未開出；0 = 在總站
-  let token = 0;             // 每次中止遞增，用來終止舊的播放協程
+  const ACCENT = { KMB: '#ff6a13', LWB: '#26a65b', CTB: '#f5c518' };
+
+  let meta = null;      // 目前路線的中繼資料
+  let trip = null;      // 完整行程（含 stops）
+  let idx = -1;
+  let token = 0;
   let auto = false;
   let dotTimer = null;
+  let wakeLock = null;
+  let loading = false;
 
-  /* ---------------- 介面初始化 ---------------- */
-  function initRoutes() {
-    el.routeSel.innerHTML = window.ROUTES
-      .map(r => `<option value="${r.id}">${r.operatorZh} ${r.route} — 往 ${r.destZh}</option>`)
-      .join('');
-    el.routeSel.value = route.id;
+  const opt = () => ({ rate: +el.rate.value, volume: +el.vol.value });
+  const enabled = l => $(`#lang${l[0].toUpperCase()}${l.slice(1)}`).checked;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const alive = t => t === token && !loading;
+
+  /* ==========================================================
+     營辦商識別（九巴 API 同時含龍運路線）
+     ========================================================== */
+  function resolveOperator(co, routeNo) {
+    if (co === 'CTB') return { key: 'CTB', zh: '城巴', zhLong: '城巴', en: 'Citybus' };
+    if (/^[AERS]/.test(routeNo) && routeNo.length > 1) {
+      return { key: 'KMB', zh: '龍運', zhLong: '龍運巴士', en: 'Long Win Bus' };
+    }
+    return { key: 'KMB', zh: '九巴', zhLong: '九龍巴士公司', en: 'Kowloon Motor Bus' };
   }
 
-  function applyRoute() {
-    route = window.ROUTES.find(r => r.id === el.routeSel.value) || window.ROUTES[0];
-    document.documentElement.style.setProperty('--accent', route.accent);
-    document.documentElement.style.setProperty('--accent-soft', hexA(route.accent, .14));
-    el.signRoute.textContent = route.route;
-    el.signDestZh.textContent = route.destZh;
-    el.signDestEn.textContent = trimEn(route.destEn.toUpperCase(), 22);
-    el.signOp.textContent = `${route.operatorZh} ${route.operator}`;
-    idx = -1;
-    renderStops();
-    idleScreen();
-    setProgress();
-  }
-
-  function hexA(hex, a) {
-    const h = hex.replace('#', '');
-    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
-    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
-  }
-
-  function renderStops() {
-    el.stopList.innerHTML = route.stops.map((s, i) => {
-      const cls = [
-        i === 0 ? 'terminus' : '',
-        i === route.stops.length - 1 ? 'terminus' : ''
-      ].join(' ');
-      return `<li data-i="${i}" class="${cls}">
-        <span class="idx">${i + 1}</span>
-        <span class="nm">${s.zh}<em>${s.en}</em></span>
-      </li>`;
-    }).join('');
-    $$('#stopList li').forEach(li => li.addEventListener('click', () => {
-      const i = +li.dataset.i;
-      hardStop();
-      if (i === 0) { const t = ++token; welcome(t); return; }
-      idx = i - 1;
-      advance();
-    }));
-    markStops();
-  }
-
-  function markStops() {
-    $$('#stopList li').forEach(li => {
-      const i = +li.dataset.i;
-      li.classList.toggle('current', i === idx);
-      li.classList.toggle('passed', idx >= 0 && i < idx);
-    });
-    const cur = el.stopList.querySelector('li.current');
-    if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }
-
-  /* ---------------- 顯示屏 ---------------- */
-  function trimEn(t, n) { return t.length > n ? t.slice(0, n - 1) + '.' : t; }
-
-  function splitZh(name) {   // 舊款屏最多 6 字、新款 8 字，超出就分頁捲動
-    if (name.length <= 8) return [name];
-    const mid = Math.ceil(name.length / 2);
-    return [name.slice(0, mid), name.slice(mid)];
-  }
-
-  function splitEn(name) {   // 英文每列最多 16 字元，兩列
-    if (name.length <= 18) return [name];
-    const words = name.split(' ');
-    const a = [], b = [];
-    words.forEach(w => ((a.join(' ') + ' ' + w).length <= 18 ? a : b).push(w));
-    return [a.join(' '), b.join(' ') || words[words.length - 1]];
-  }
-
-  function setScreen(zh, en) {
-    const zhPages = splitZh(zh);
-    const enLines = splitEn(en.toUpperCase());
-    el.lineZh.innerHTML = zhPages.map(p => `<b>${p}</b>`).join('');
-    el.lineEn.innerHTML = enLines.map(p => `<b>${p}</b>`).join('');
-    el.lineZh.classList.toggle('rolling', zhPages.length > 1);
-    el.screen.classList.remove('idle');
-  }
-
-  function setTag(zh, en) { el.screenTag.textContent = zh; el.screenTagEn.textContent = en; }
-
-  function idleScreen() {
-    el.screen.classList.add('idle');
-    setScreen('請按開出', 'PRESS DEPART');
-    setTag('待機', 'STANDBY');
-  }
-
-  function setProgress(extra) {
-    const total = route.stops.length;
-    if (idx < 0) { el.progressText.textContent = '尚未開出 · 全程 ' + total + ' 站'; return; }
-    el.progressText.textContent = `第 ${idx + 1}/${total} 站 · ${extra || route.stops[idx].zh}`;
-  }
-
-  function startDots() {
-    let k = 0;
-    clearInterval(dotTimer);
-    dotTimer = setInterval(() => {
-      k = (k + 1) % 4;
-      el.runDots.textContent = '●'.repeat(k) + '○'.repeat(3 - k);
-    }, 420);
-  }
-  function stopDots() { clearInterval(dotTimer); el.runDots.textContent = ''; }
-
-  /* ---------------- 字幕 ---------------- */
-  function setScripts(map) {
-    LANGS.forEach(l => { if (map[l] != null) el.txt[l].textContent = map[l]; });
-  }
-  function highlight(lang) {
-    $$('.line-item').forEach(it => it.classList.toggle('active', it.dataset.lang === lang));
-  }
-
-  /* ---------------- 廣播稿 ---------------- */
+  /* ==========================================================
+     廣播稿
+     ========================================================== */
   const scripts = {
     KMB: {
       welcome: r => ({
-        cantonese: `各位乘客，歡迎乘搭九龍巴士公司${r.route}線，本班車將由${r.originZh}開往${r.destZh}，中途將有廣播提示各位乘客落車，祝各位旅途愉快。`,
-        english: `Dear passengers, on behalf of Kowloon Motor Bus Company, I would like to welcome you on board our route number ${r.route} to ${r.destEn}. Further announcements will be made as we approach various mid-way bus stops. It is our pleasure to have you on board, and we wish you a pleasant journey.`,
-        putonghua: `各位乘客，欢迎乘坐九龙巴士公司${r.route}线，本班车将由${r.originZh}开往${r.destZh}，中途将有广播提示各位乘客下车，祝各位旅途愉快。`
+        cantonese: `各位乘客，歡迎乘搭${r.operatorLong}${r.routeNo}線，本班車將由${r.originZh}開往${r.destZh}，中途將有廣播提示各位乘客落車，祝各位旅途愉快。`,
+        english: `Dear passengers, on behalf of ${r.operatorEn}, I would like to welcome you on board our route number ${r.routeNo} to ${r.destEn}. Further announcements will be made as we approach various mid-way bus stops. It is our pleasure to have you on board, and we wish you a pleasant journey.`,
+        putonghua: `各位乘客，欢迎乘坐${r.operatorLong}${r.routeNo}线，本班车将由${r.originZh}开往${r.destZh}，中途将有广播提示各位乘客下车，祝各位旅途愉快。`
       }),
       next: (r, s) => ({
         cantonese: `下一站係：${s.zh}。`,
@@ -163,21 +76,21 @@
         cantonese: '請緊握扶手。', english: 'Please hold the handrail.', putonghua: '請緊握扶手。'
       },
       interchange: {
-        cantonese: '乘客可以喺呢個站，用八達通卡轉乘其他九巴路線。',
-        english: 'Passengers may use their Octopus cards to interchange with other KMB routes at this stop.',
-        putonghua: '乘客可以在这个站，使用八达通卡转乘其他九巴路线。'
+        cantonese: '乘客可以喺呢個站，用八達通卡轉乘其他巴士路線。',
+        english: 'Passengers may use their Octopus cards to interchange with other bus routes at this stop.',
+        putonghua: '乘客可以在这个站，使用八达通卡转乘其他巴士路线。'
       },
       terminus: r => ({
-        cantonese: `各位乘客，本班車已經到達${r.destZh}，請各位乘客落車，多謝乘搭${r.route}線。`,
-        english: `We have arrived at ${r.destEn}. Please alight here. Thank you for travelling with Kowloon Motor Bus.`,
-        putonghua: `各位乘客，本班车已经到达${r.destZh}，请各位乘客下车，多谢乘坐${r.route}线。`
+        cantonese: `各位乘客，本班車已經到達${r.destZh}，請各位乘客落車，多謝乘搭${r.routeNo}線。`,
+        english: `We have arrived at ${r.destEn}. Please alight here. Thank you for travelling with ${r.operatorEn}.`,
+        putonghua: `各位乘客，本班车已经到达${r.destZh}，请各位乘客下车，多谢乘坐${r.routeNo}线。`
       })
     },
     CTB: {
       welcome: r => ({
-        cantonese: `歡迎乘搭城巴${r.route}號線，前往${r.destZh}，祝旅途愉快。`,
-        english: `Welcome aboard Citybus route ${r.route} towards ${r.destEn}. Thank you and enjoy the journey.`,
-        putonghua: `欢迎乘坐城巴第${r.route}路，前往${r.destZh}，祝您旅途愉快。`
+        cantonese: `歡迎乘搭城巴${r.routeNo}號線，前往${r.destZh}，祝旅途愉快。`,
+        english: `Welcome aboard Citybus route ${r.routeNo} towards ${r.destEn}. Thank you and enjoy the journey.`,
+        putonghua: `欢迎乘坐城巴第${r.routeNo}路，前往${r.destZh}，祝您旅途愉快。`
       }),
       next: (r, s) => ({
         cantonese: `下一站：${s.zh}${s.note ? '，' + s.note : ''}。`,
@@ -192,7 +105,7 @@
         english: 'Passengers may interchange with other Citybus routes at this stop.',
         putonghua: '乘客可以在这个站转乘其他城巴路线。'
       },
-      terminus: r => ({
+      terminus: () => ({
         cantonese: '我哋已經到達終點站，落車時，請緊記攜帶您嘅隨身物品，多謝選搭城巴，拜拜！',
         english: 'We have arrived at the terminus. Please make sure all your personal belongings are with you when alighting. Thank you for travelling with Citybus, see you!',
         putonghua: '我们已经到达终点站，下车时，请紧记携带您的随身物品，谢谢选搭城巴，再见！'
@@ -200,26 +113,136 @@
     }
   };
 
-  /* ---------------- 播放核心 ---------------- */
-  const opt = () => ({ rate: +el.rate.value, volume: +el.vol.value });
-  const enabled = l => $(`#lang${l[0].toUpperCase()}${l.slice(1)}`).checked;
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const alive = t => t === token;
+  /* ==========================================================
+     顯示
+     ========================================================== */
+  function setAccent(hex) {
+    document.documentElement.style.setProperty('--accent', hex);
+    document.documentElement.style.setProperty('--accent-soft', hexA(hex, .14));
+  }
+  function hexA(hex, a) {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+  const trimEn = (t, n) => (t.length > n ? t.slice(0, n - 1) + '.' : t);
 
+  function splitZh(name, isNew) {
+    const max = isNew ? 8 : 6;
+    if (name.length <= max) return [name];
+    const mid = Math.ceil(name.length / 2);
+    return [name.slice(0, mid), name.slice(mid)];
+  }
+  function splitEn(name) {
+    if (name.length <= 18) return [name];
+    const w = name.split(' '), a = [], b = [];
+    w.forEach(x => ((a.join(' ') + ' ' + x).length <= 18 ? a : b).push(x));
+    return [a.join(' '), b.join(' ') || w[w.length - 1]];
+  }
+
+  function setScreen(zh, en) {
+    const isNew = $('#styleNew').checked;
+    el.screen.classList.toggle('old', !isNew);
+    const zhP = splitZh(zh, isNew);
+    const enP = splitEn((en || '').toUpperCase());
+    el.lineZh.innerHTML = `<span>${zhP.map(p => `<b>${p}</b>`).join('')}</span>`;
+    el.lineEn.innerHTML = `<span>${enP.map(p => `<b>${p}</b>`).join('')}</span>`;
+    el.screen.classList.toggle('rolling', zhP.length > 1);
+    el.screen.classList.remove('idle');
+  }
+  function setTag(zh, en) { el.screenTag.textContent = zh; el.screenTagEn.textContent = en; }
+  function idleScreen(msgZh, msgEn) {
+    el.screen.classList.add('idle');
+    setScreen(msgZh || '請先選擇路線', msgEn || 'SELECT A ROUTE');
+    setTag('待機', 'STANDBY');
+  }
+  function lamp(on) {
+    el.stopLamp.classList.toggle('off', !$('#showLamp').checked);
+    el.stopLamp.classList.toggle('on', !!on);
+  }
+
+  function setScripts(map) {
+    LANGS.forEach(l => { if (map[l] != null) el.txt[l].textContent = map[l]; });
+  }
+  function highlight(lang) {
+    $$('.line-item').forEach(it => it.classList.toggle('active', it.dataset.lang === lang));
+  }
+
+  function renderStops() {
+    if (!trip) { el.stopList.innerHTML = ''; return; }
+    const n = trip.stops.length;
+    el.stopList.innerHTML = trip.stops.map((s, i) => `
+      <li data-i="${i}" class="${i === 0 || i === n - 1 ? 'terminus' : ''}">
+        <span class="idx">${i + 1}</span>
+        <span class="nm">${s.zh}<em>${s.en}</em></span>
+      </li>`).join('');
+    $$('#stopList li').forEach(li => li.addEventListener('click', () => {
+      const i = +li.dataset.i;
+      hardStop();
+      if (i === 0) { const t = ++token; welcome(t); return; }
+      idx = i - 1; advance();
+    }));
+    markStops();
+  }
+  function markStops() {
+    $$('#stopList li').forEach(li => {
+      const i = +li.dataset.i;
+      li.classList.toggle('current', i === idx);
+      li.classList.toggle('passed', idx >= 0 && i < idx);
+    });
+    const cur = el.stopList.querySelector('li.current');
+    if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function updateProgress(extra) {
+    if (!trip) return;
+    const n = trip.stops.length;
+    if (idx < 0) {
+      el.progressText.textContent = `尚未開出 · 全程 ${n} 站`;
+      el.pbarFill.style.width = '0%'; el.pbarDot.style.left = '0%';
+    } else {
+      const pct = n > 1 ? (idx / (n - 1)) * 100 : 100;
+      el.progressText.textContent = `第 ${idx + 1}/${n} 站 · ${extra || trip.stops[idx].zh}`;
+      el.pbarFill.style.width = pct + '%'; el.pbarDot.style.left = pct + '%';
+    }
+    renderNext3();
+  }
+  function renderNext3() {
+    if (!trip) { el.next3.innerHTML = ''; return; }
+    const out = [];
+    const base = Math.max(0, idx);   // 未開出時視為停在第 1 站，接下來是第 2 站起
+    for (let k = 1; k <= 3; k++) {
+      const s = trip.stops[base + k];
+      if (!s) break;
+      out.push(`<div><b>${k === 1 ? '下一站 ' : ''}${s.zh}</b><span>${s.en}</span></div>`);
+    }
+    el.next3.innerHTML = out.join('');
+  }
+
+  function startDots() {
+    let k = 0; clearInterval(dotTimer);
+    dotTimer = setInterval(() => {
+      k = (k + 1) % 4;
+      el.runDots.textContent = '●'.repeat(k) + '○'.repeat(3 - k);
+    }, 420);
+  }
+  function stopDots() { clearInterval(dotTimer); el.runDots.textContent = ''; }
+
+  /* ==========================================================
+     播放核心
+     ========================================================== */
   async function say(text, lang, t) {
     if (!alive(t)) return;
     highlight(lang);
     await Speech.speak(text, lang, opt());
   }
 
-  /** 三語廣播一組稿：粵 → 英 → 國，逐段切換屏幕與字幕 */
-  async function announce(map, t, screen) {
+  async function announce(map, t, screenFn) {
     if (!alive(t)) return;
     setScripts(map);
     for (const lang of LANGS) {
       if (!alive(t)) return;
-      if (!enabled(lang)) { if (screen) screen(lang); continue; }
-      if (screen) screen(lang);
+      if (!enabled(lang)) { if (screenFn) screenFn(lang); continue; }
+      if (screenFn) screenFn(lang);
       await say(map[lang], lang, t);
       if (!alive(t)) return;
       await sleep(180);
@@ -228,31 +251,27 @@
   }
 
   async function welcome(t) {
-    const s = scripts[route.operator];
-    idx = 0;
-    markStops(); setProgress('於總站開出');
+    if (!trip) return;
+    const s = scripts[trip.scriptKey];
+    idx = 0; markStops(); updateProgress('於總站開出'); lamp(false);
     setTag('歡迎乘搭', 'WELCOME ONBOARD');
     startDots();
-    await announce(s.welcome(route), t, lang => {
-      if (route.operator === 'KMB') setScreen('歡迎乘坐九龍巴士', lang === 'english' ? 'WELCOME ONBOARD' : '歡迎乘坐九龍巴士');
-      else setScreen('歡迎乘坐城巴', lang === 'english' ? 'WELCOME ONBOARD' : 'WELCOME ONBOARD');
-    });
+    const welcomeZh = trip.operatorZh === '城巴' ? '歡迎乘坐城巴' : '歡迎乘坐' + trip.operatorZh;
+    await announce(s.welcome(trip), t, () => setScreen(welcomeZh, 'WELCOME ONBOARD'));
     stopDots();
-    // 開出後畫面轉為「下一站」，語音留待按下／自動行車時才播出
-    if (alive(t) && route.stops.length > 1) {
+    if (alive(t) && trip.stops.length > 1) {
       await sleep(300);
       setTag('下一站', 'NEXT STOP');
-      setScreen(route.stops[1].zh, route.stops[1].en);
-      setProgress('下一站：' + route.stops[1].zh);
+      setScreen(trip.stops[1].zh, trip.stops[1].en);
+      updateProgress('下一站：' + trip.stops[1].zh);
     }
   }
 
   async function nextStop(i, t) {
-    const s = scripts[route.operator];
-    const stop = route.stops[i];
+    const s = scripts[trip.scriptKey];
+    const stop = trip.stops[i];
     setTag('下一站', 'NEXT STOP');
-    await announce(s.next(route, stop), t, lang => setScreen(stop.zh, stop.en));
-
+    await announce(s.next(trip, stop), t, lang => setScreen(stop.zh, stop.en));
     if (stop.note && alive(t) && LANGS.some(enabled)) {
       setTag('轉乘提示', 'INTERCHANGE');
       await announce(s.interchange, t, () => setScreen('八達通轉乘', 'OCTOPUS INTERCHANGE'));
@@ -268,49 +287,46 @@
   async function arriveStop(i, t) {
     if (!alive(t)) return;
     if ($('#bellChk').checked) Speech.bell();
-    idx = i;
-    markStops(); setProgress('已到站：' + route.stops[i].zh);
+    idx = i; markStops(); updateProgress('已到站：' + trip.stops[i].zh);
     setTag('此站', 'THIS STOP');
-    setScreen(route.stops[i].zh, route.stops[i].en);
+    setScreen(trip.stops[i].zh, trip.stops[i].en);
+    lamp(true);
     setTimeout(() => Speech.doorChime(), 900);
-    await sleep(auto ? 4200 / +el.rate.value : 2600);
+    await sleep((auto ? +el.gap.value * 1000 : 1200) + 800);
   }
 
   async function terminus(t) {
-    idx = route.stops.length - 1;
-    markStops(); setProgress('終點站');
-    const s = scripts[route.operator];
-    setTag('終點站', 'TERMINUS');
-    stopDots();
-    await announce(s.terminus(route), t, lang =>
+    if (!trip) return;
+    idx = trip.stops.length - 1;
+    markStops(); updateProgress('終點站');
+    const s = scripts[trip.scriptKey];
+    setTag('終點站', 'TERMINUS'); stopDots(); lamp(true);
+    await announce(s.terminus(trip), t, lang =>
       setScreen(lang === 'cantonese' || lang === 'putonghua' ? '巴士總站' : 'BUS TERMINUS',
         lang === 'english' ? 'THANK YOU FOR TRAVELLING' : '多謝乘搭'));
     setScreen('多謝乘搭', 'THANK YOU FOR TRAVELLING');
     setAuto(false);
   }
 
-  /** 前進一站：播下一站 → 到站 */
   async function advance() {
+    if (!trip) return;
     const t = ++token;
-    if (idx + 1 >= route.stops.length) { await terminus(t); return; }
+    if (idx + 1 >= trip.stops.length) { await terminus(t); return; }
     startDots();
     await nextStop(idx + 1, t);
     if (!alive(t)) { stopDots(); return; }
     await arriveStop(idx + 1, t);
     stopDots();
     if (!alive(t)) return;
-    if (auto && idx < route.stops.length - 1) {
-      await sleep(1200 / +el.rate.value);
+    lamp(false);
+    if (auto && idx < trip.stops.length - 1) {
+      await sleep(600);
       if (alive(t)) advance();
     }
   }
 
   function hardStop() {
-    token++;
-    Speech.cancel();
-    stopDots();
-    highlight(null);
-    setAuto(false);
+    token++; Speech.cancel(); stopDots(); highlight(null); setAuto(false);
   }
 
   function setAuto(v) {
@@ -319,39 +335,242 @@
     el.btnAuto.textContent = v ? '⏸ 停止行車' : '🔁 自動行車';
   }
 
-  /* ---------------- 事件 ---------------- */
-  el.routeSel.addEventListener('change', () => { hardStop(); applyRoute(); });
-  el.rate.addEventListener('input', () => el.rateVal.textContent = (+el.rate.value).toFixed(1) + '×');
-  el.vol.addEventListener('input', () => el.volVal.textContent = Math.round(el.vol.value * 100) + '%');
+  /* ==========================================================
+     路線載入
+     ========================================================== */
+  async function selectRoute(id) {
+    hardStop();
+    loading = true;
+    el.hint.textContent = '正在載入此班次車站…';
+    try {
+      const r = await Data.getRoute(id, m => { el.hint.textContent = m; });
+      const op = resolveOperator(r.co, r.route);
+      meta = Data.byId(id) || null;
+      trip = {
+        id, routeNo: r.route, scriptKey: op.key,
+        operatorZh: op.zh, operatorLong: op.zhLong, operatorEn: op.en,
+        originZh: r.origTc, originEn: r.origEn,
+        destZh: r.destTc, destEn: r.destEn,
+        bound: r.boundLabel,
+        stops: r.stops
+      };
+      setAccent(ACCENT[op.zh === '龍運' ? 'LWB' : op.key]);
+      el.signRoute.textContent = r.route;
+      el.signDestZh.textContent = r.destTc;
+      el.signDestEn.textContent = trimEn((r.destEn || r.destTc).toUpperCase(), 24);
+      el.signOp.textContent = `${op.zh} ${op.key}`;
+      el.screenBound.textContent = r.boundLabel || '';
+      el.crName.textContent = `${op.zh} ${r.route} 往 ${r.destTc}`;
+      el.crBound.textContent = r.boundLabel || '';
+      el.btnFlip.disabled = !Data.otherBound(meta || { _fallback: true });
+      idx = -1;
+      renderStops(); updateProgress(); idleScreen('請按開出', 'PRESS DEPART');
+      setScripts({ cantonese: '—', english: '—', putonghua: '—' });
+      lamp(false);
+      el.hint.textContent = `全程 ${r.stops.length} 個站`;
+      refreshFavBtn();
+      markSelected(id);
+      saveCfg();
+    } catch (e) {
+      el.hint.textContent = '載入失敗：' + (e && e.message ? e.message : '未知錯誤');
+    } finally {
+      loading = false;
+    }
+  }
 
-  el.btnStart.addEventListener('click', () => {
-    Speech.loadVoices(); hardStop();
-    const t = ++token; welcome(t);
+  function markSelected(id) {
+    $$('#results li').forEach(li => li.classList.toggle('sel', li.dataset.id === id));
+  }
+  function refreshFavBtn() {
+    const on = trip && Data.isFav(trip.id);
+    el.btnFav.classList.toggle('on', !!on);
+    el.btnFav.textContent = on ? '★ 已收藏' : '☆ 收藏';
+  }
+
+  /* ==========================================================
+     搜尋與收藏
+     ========================================================== */
+  let searchTimer = null;
+  function renderResults() {
+    if (!Data.state.routeIndexReady) {
+      el.results.innerHTML = '<li class="empty">路線表載入中…</li>';
+      return;
+    }
+    const list = Data.search(el.q.value, el.co.value);
+    if (!list.length) {
+      el.results.innerHTML = '<li class="empty">找不到相符路線</li>';
+      return;
+    }
+    el.results.innerHTML = list.map(r => `
+      <li data-id="${r.id}">
+        <span class="rt">${r.route}</span>
+        <span class="dst">往 ${r.destTc || '—'}</span>
+        <span class="bd">${Data.boundLabel(r) || '內建'}</span>
+      </li>`).join('');
+    $$('#results li').forEach(li => li.addEventListener('click', () => selectRoute(li.dataset.id)));
+    if (trip) markSelected(trip.id);
+  }
+  function renderFavs() {
+    const f = Data.favorites();
+    el.favs.innerHTML = f.map(x => `<span class="fav-chip" data-id="${x.id}">${x.label}</span>`).join('');
+    $$('.fav-chip').forEach(c => c.addEventListener('click', () => selectRoute(c.dataset.id)));
+  }
+
+  /* ==========================================================
+     設定
+     ========================================================== */
+  const CFG_KEYS = ['rate', 'vol', 'gap', 'langCantonese', 'langEnglish', 'langPutonghua',
+    'handrail', 'bellChk', 'styleNew', 'keepAwake', 'showLamp'];
+  function loadCfgIntoUI() {
+    const c = Data.loadCfg();
+    CFG_KEYS.forEach(k => {
+      const node = $('#' + k);
+      if (!node) return;
+      if (node.type === 'checkbox') { if (k in c) node.checked = !!c[k]; }
+      else if (c[k] != null) node.value = c[k];
+    });
+    syncLabels();
+    if (c.routeId) el.q.dataset.restore = c.routeId;
+  }
+  function saveCfg() {
+    const c = {};
+    CFG_KEYS.forEach(k => {
+      const node = $('#' + k);
+      if (!node) return;
+      c[k] = node.type === 'checkbox' ? node.checked : node.value;
+    });
+    if (trip) c.routeId = trip.id;
+    Data.saveCfg(c);
+  }
+  function syncLabels() {
+    el.rateVal.textContent = (+el.rate.value).toFixed(1) + '×';
+    el.volVal.textContent = Math.round(el.vol.value * 100) + '%';
+    el.gapVal.textContent = +el.gap.value + ' 秒';
+    lamp(false);
+  }
+
+  /* ==========================================================
+     全屏與螢幕常亮
+     ========================================================== */
+  function toggleFs() {
+    const st = el.stage;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (st.requestFullscreen) st.requestFullscreen().catch(() => {});
+  }
+  async function setWakeLock(on) {
+    try {
+      if (on) {
+        if ('wakeLock' in navigator && !wakeLock) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => { wakeLock = null; });
+        }
+      } else if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (e) { /* 不支援就略過 */ }
+  }
+
+  /* ==========================================================
+     事件
+     ========================================================== */
+  el.q.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderResults, 180);
   });
+  el.co.addEventListener('change', renderResults);
+
+  el.btnStart.addEventListener('click', () => { Speech.loadVoices(); if (!trip) return; hardStop(); const t = ++token; welcome(t); });
   el.btnNext.addEventListener('click', () => {
-    Speech.loadVoices();
+    Speech.loadVoices(); if (!trip) return;
     if (idx < 0) { const t = ++token; welcome(t); return; }
     advance();
   });
-  el.btnTerminus.addEventListener('click', () => { Speech.loadVoices(); hardStop(); const t = ++token; terminus(t); });
+  el.btnPrev.addEventListener('click', () => {
+    if (!trip) return; hardStop();
+    idx = Math.max(0, idx - 1);
+    markStops(); updateProgress('已到站：' + trip.stops[idx].zh);
+    setTag('此站', 'THIS STOP'); setScreen(trip.stops[idx].zh, trip.stops[idx].en);
+  });
+  el.btnTerminus.addEventListener('click', () => { Speech.loadVoices(); if (!trip) return; hardStop(); const t = ++token; terminus(t); });
   el.btnAuto.addEventListener('click', () => {
-    Speech.loadVoices();
+    Speech.loadVoices(); if (!trip) return;
     if (auto) { hardStop(); return; }
     hardStop(); setAuto(true);
-    if (idx < 0) { const t = ++token; welcome(t).then(() => { if (alive(token)) advance(); }); }
+    if (idx < 0) { const t0 = ++token; welcome(t0).then(() => { if (alive(token) && auto) advance(); }); }
     else advance();
   });
-  el.btnBell.addEventListener('click', () => { Speech.bell(); });
+  el.btnBell.addEventListener('click', () => Speech.bell());
   el.btnStop.addEventListener('click', () => {
     hardStop();
-    if (idx < 0) idleScreen(); else { setTag('已停止', 'STOPPED'); setScreen(route.stops[idx].zh, route.stops[idx].en); }
-    setProgress('已停止');
+    if (trip && idx >= 0) {
+      setTag('已停止', 'STOPPED'); setScreen(trip.stops[idx].zh, trip.stops[idx].en);
+      updateProgress('已停止');
+    } else idleScreen();
+  });
+  el.btnReset.addEventListener('click', () => {
+    hardStop(); idx = -1; markStops(); updateProgress();
+    idleScreen('請按開出', 'PRESS DEPART');
+    setScripts({ cantonese: '—', english: '—', putonghua: '—' }); lamp(false);
+  });
+  el.btnFlip.addEventListener('click', () => {
+    if (!meta) return;
+    const alt = Data.otherBound(meta);
+    if (alt) selectRoute(alt.id);
+  });
+  el.btnFav.addEventListener('click', () => {
+    if (!trip) return;
+    Data.toggleFav(trip.id, `${trip.operatorZh} ${trip.routeNo} 往 ${trip.destZh}`);
+    renderFavs(); refreshFavBtn();
+  });
+  el.btnFs.addEventListener('click', toggleFs);
+
+  ['rate', 'vol', 'gap'].forEach(k => $('#' + k).addEventListener('input', () => { syncLabels(); saveCfg(); }));
+  CFG_KEYS.forEach(k => {
+    const n = $('#' + k);
+    if (!n) return;
+    n.addEventListener('change', () => {
+      if (k === 'keepAwake') setWakeLock(n.checked);
+      if (k === 'showLamp') lamp(false);
+      if (k === 'styleNew' && trip && idx >= 0) setScreen(trip.stops[idx].zh, trip.stops[idx].en);
+      saveCfg();
+    });
   });
 
-  /* ---------------- 啟動 ---------------- */
-  initRoutes();
-  applyRoute();
-  const st = Speech.status();
-  if (st.msg) el.hint.textContent = '提示：' + st.msg;
-  setTimeout(() => { const s2 = Speech.status(); if (s2.msg) el.hint.textContent = '提示：' + s2.msg; }, 1200);
+  document.addEventListener('keydown', e => {
+    if (e.target && /input|select|textarea/i.test(e.target.tagName)) return;
+    const k = e.key;
+    if (k === 'ArrowRight') { e.preventDefault(); el.btnNext.click(); }
+    else if (k === 'ArrowLeft') { e.preventDefault(); el.btnPrev.click(); }
+    else if (k === ' ') { e.preventDefault(); el.btnAuto.click(); }
+    else if (k === 'b' || k === 'B') Speech.bell();
+    else if (k === 'f' || k === 'F') toggleFs();
+    else if (k === 'r' || k === 'R') el.btnFlip.click();
+    else if (k === 'Home') { e.preventDefault(); el.btnReset.click(); }
+    else if (k === 'Escape') el.btnStop.click();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && $('#keepAwake').checked === false && auto) hardStop();
+  });
+
+  /* ==========================================================
+     啟動
+     ========================================================== */
+  loadCfgIntoUI();
+  renderFavs();
+
+  Data.init(st => {
+    el.status.textContent = st.msg;
+    if (st.routeIndexReady) renderResults();
+  }).then(st => {
+    el.status.textContent = st.msg;
+    renderResults();
+    const restore = el.q.dataset.restore;
+    if (restore && Data.byId(restore)) selectRoute(restore);
+    else if (st.mode === 'fallback' && window.ROUTES && window.ROUTES.length) selectRoute('FB|' + window.ROUTES[0].id);
+    if ($('#keepAwake').checked) setWakeLock(true);
+  });
+
+  setTimeout(() => {
+    const s = Speech.status();
+    if (s.msg) el.hint.textContent = '提示：' + s.msg;
+  }, 1500);
 })();
