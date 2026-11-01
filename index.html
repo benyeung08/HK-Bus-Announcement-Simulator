@@ -11,6 +11,7 @@
 </head>
 <body>
 <div class="wrap">
+  <i class="screw-l"></i><i class="screw-r"></i>
 
   <header class="head">
     <div class="head-title">
@@ -24,6 +25,7 @@
 
   <!-- 選路線 -->
   <section class="card" id="picker">
+    <div class="cab-plate">路線資料 <span>ROUTE DATA</span></div>
     <div class="pick-row">
       <input type="search" id="q" placeholder="輸入路線號或起訖站，例如 1A、尖沙咀" autocomplete="off">
       <select id="co" aria-label="營辦商">
@@ -39,7 +41,9 @@
   <!-- 車廂顯示區（全屏目標） -->
   <section class="stage" id="stage">
 
-    <div class="head-sign" id="headSign">
+    <!-- LED 點陣顯示屏 ①車頭電牌 -->
+    <div class="head-sign led-panel" id="headSign">
+      <div class="led-grid"></div>
       <div class="sign-route"><span id="signRoute">—</span></div>
       <div class="sign-dest">
         <div class="sign-dest-zh" id="signDestZh">請先選擇路線</div>
@@ -51,7 +55,18 @@
     <!-- ===== 九巴／龍運：BM-2013-KMB 報站機整機 ===== -->
     <div class="rig" id="rig" hidden>
 
-      <!-- 車廂顯示屏 -->
+      <!-- LED 點陣顯示屏 ②車廂報站屏（走馬燈） -->
+      <div class="led-cab led-panel" id="ledCab">
+        <div class="led-grid"></div>
+        <div class="lc-row">
+          <span class="lc-tag" id="lcTag">待機</span>
+          <span class="lc-name" id="lcZh">請先選擇路線</span>
+        </div>
+        <div class="lc-en" id="lcEn">SELECT A ROUTE</div>
+        <div class="lc-lamp" id="lcLamp" title="下車燈"></div>
+      </div>
+
+      <!-- 車廂顯示屏（黑色大屏） -->
       <div class="dpip" id="dpip">
         <div class="dpip-main" id="dpipMain">
           <div class="dm-head">
@@ -163,6 +178,12 @@
     <!-- ===== 城巴：LECIP 報站系統（輕觸式平板控制台） ===== -->
     <div class="ctbrig" id="ctbRig" hidden>
 
+      <!-- 車廠／車務設定銘牌（僅城巴主題顯示） -->
+      <div class="console-plate">
+        <span class="cp-main">LECIP 報站系統 <em>AUTOMATIC STOP ANNOUNCEMENT</em></span>
+        <span class="cp-sub">七吋輕觸式控制器 · faytech</span>
+      </div>
+
       <!-- 車廂 LED 顯示屏 MS-315A-CTB -->
       <div class="legacy" id="legacy">
         <div class="screen-box">
@@ -171,8 +192,8 @@
             <span class="tag-en" id="screenTagEn">STANDBY</span>
             <span class="tag-bound" id="screenBound"></span>
           </div>
-          <div class="screen idle" id="screen">
-            <div class="scanlines"></div>
+          <div class="screen idle led-panel" id="screen">
+            <div class="led-grid"></div>
             <div class="matrix">
               <div class="line line-zh" id="lineZh"><span><b>請先選擇路線</b></span></div>
               <div class="line line-en" id="lineEn"><span><b>SELECT A ROUTE</b></span></div>
@@ -294,7 +315,8 @@
   </section>
 
   <!-- 控制面板 -->
-  <section class="card panel">
+  <section class="card panel" id="sysPanel">
+    <div class="cab-plate">系統設定 <span>SYSTEM SETTINGS</span></div>
     <div class="cur-route">
       <span class="cr-name" id="crName">—</span>
       <span class="cr-bound" id="crBound"></span>
