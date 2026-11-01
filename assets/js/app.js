@@ -28,6 +28,7 @@
     inSurnameZh: $('#inSurnameZh'), inSurnameEn: $('#inSurnameEn'), inStaffNo: $('#inStaffNo'),
     btnFormOk: $('#btnFormOk'),
     audioInfo: $('#audioInfo'), btnAudio: $('#btnAudio'),
+    ledCab: $('#ledCab'), lcTag: $('#lcTag'), lcZh: $('#lcZh'), lcEn: $('#lcEn'), lcLamp: $('#lcLamp'),
     ctbRig: $('#ctbRig'), ctbLogo: $('#ctbLogo'), ctbMain: $('#ctbMain'),
     ctbTime: $('#ctbTime'), cmRoute: $('#cmRoute'), cmDir: $('#cmDir'),
     cmDestZh: $('#cmDestZh'), cmDestEn: $('#cmDestEn'),
@@ -171,6 +172,9 @@
     el.rig.hidden = !d;
     el.ctbRig.hidden = d;
     el.dpip.classList.toggle('lwb', !!trip && trip.isLWB);
+    // 整站主題：九巴／龍運＝報站器機櫃，城巴＝輕觸式控制台
+    document.body.classList.toggle('mode-kmb', d);
+    document.body.classList.toggle('mode-ctb', !d);
     applyPidsMode();
     renderCtbList();
     updateCtbScreen();
@@ -208,6 +212,18 @@
     el.dmBigEn.style.display = en ? '' : 'none';
     el.dmBig.classList.remove('idle');
     el.dmBig.classList.toggle('welcome', /WELCOME ABOARD/i.test(zh));
+    // 同步車廂 LED 點陣屏（走馬燈）
+    el.lcZh.textContent = zh;
+    el.lcEn.textContent = en || '';
+    el.lcEn.style.display = en ? '' : 'none';
+    el.ledCab.classList.remove('idle');
+  }
+
+  /** 車廂 LED 屏的小標籤（下一站／此站／終點站） */
+  function setLedTag(zh) {
+    el.lcTag.textContent = zh;
+    el.lcZh.textContent = zh;
+    el.ledCab.classList.toggle('idle', zh === '待機');
   }
 
   /* 城巴屏：以實機圖案表示播報性質 */
@@ -235,7 +251,11 @@
     el.screen.classList.remove('idle');
   }
   function setTag(zh, en) {
-    if (isDPIP()) { el.dmTagZh.textContent = zh; el.dmTagEn.textContent = en; return; }
+    if (isDPIP()) {
+      el.dmTagZh.textContent = zh; el.dmTagEn.textContent = en;
+      el.lcTag.textContent = zh;
+      return;
+    }
     el.screenTag.textContent = zh; el.screenTagEn.textContent = en;
     lastTag = { zh, en };
   }
@@ -245,20 +265,25 @@
 
   function idleScreen(msgZh, msgEn) {
     if (isDPIP()) {
-      el.dmBig.classList.add('idle');
       setBig(msgZh || '請先選擇路線', '');
       setTag('待機', 'STANDBY');
+      // setBig 會清掉 idle，故須置於其後
+      el.dmBig.classList.add('idle');
+      el.ledCab.classList.add('idle');
       return;
     }
     el.screen.classList.add('idle');
     setScreen(msgZh || '請先選擇路線', msgEn || 'SELECT A ROUTE');
     setTag('待機', 'STANDBY');
     setCtbNow('🚌', '待機', msgZh || '請先選擇路線');
+    // 必須在 setScreen 之後，否則會被 setBig 清掉
+    el.ledCab.classList.add('idle');
+    el.dmBig.classList.add('idle');
   }
 
   function lamp(on) {
     const show = $('#showLamp').checked;
-    [el.stopLamp, el.stopLampDpip].forEach(n => {
+    [el.stopLamp, el.stopLampDpip, el.lcLamp].forEach(n => {
       if (!n) return;
       n.classList.toggle('off', !show);
       n.classList.toggle('on', !!on);
@@ -1138,6 +1163,8 @@
      ========================================================== */
   loadCfgIntoUI();
   renderFavs();
+  // 整站恆為報站器機櫃外殼；選到哪家再切換該營辦商的控制台
+  document.body.classList.add('cabbed');
   setDriverInfo();
   applyPidsMode();
   lcdRefresh();
