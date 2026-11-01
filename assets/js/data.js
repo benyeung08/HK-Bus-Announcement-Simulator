@@ -268,8 +268,8 @@ const Data = (() => {
 
     const list = order.map(sid => {
       const s = table.get(sid);
-      return s ? { zh: s.name_tc || '', en: s.name_en || '', note: '' }
-               : { zh: `車站 ${sid}`, en: `STOP ${sid}`, note: '' };
+      return s ? { zh: s.name_tc || '', en: s.name_en || '', note: '', code: sid }
+               : { zh: `車站 ${sid}`, en: `STOP ${sid}`, note: '', code: sid };
     }).filter(s => s.zh);
 
     const out = {

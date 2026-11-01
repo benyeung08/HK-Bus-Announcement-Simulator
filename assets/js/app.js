@@ -16,6 +16,15 @@
     screen: $('#screen'), lineZh: $('#lineZh'), lineEn: $('#lineEn'),
     screenTag: $('#screenTag'), screenTagEn: $('#screenTagEn'), screenBound: $('#screenBound'),
     stopLamp: $('#stopLamp'),
+    dpip: $('#dpip'), legacy: $('#legacy'), driverRow: $('#driverRow'),
+    dmRoute: $('#dmRoute'), dmDestZh: $('#dmDestZh'), dmDestEn: $('#dmDestEn'), dmCo: $('#dmCo'),
+    dmTrack: $('#dmTrack'), dmMap: $('#dmMap'), dmBig: $('.dm-big'),
+    dmTagZh: $('#dmTagZh'), dmTagEn: $('#dmTagEn'),
+    dmBigZh: $('#dmBigZh'), dmBigEn: $('#dmBigEn'),
+    dmDriverZh: $('#dmDriverZh'), dmDriverEn: $('#dmDriverEn'), dmStaff: $('#dmStaff'),
+    dpipSec: $('#dpipSec'), stopLampDpip: $('#stopLampDpip'),
+    driverName: $('#driverName'), staffNo: $('#staffNo'),
+    audioInfo: $('#audioInfo'), btnAudio: $('#btnAudio'),
     progressText: $('#progressText'), runDots: $('#runDots'),
     pbarFill: $('#pbarFill'), pbarDot: $('#pbarDot'), next3: $('#next3'),
     txt: { cantonese: $('#txtCantonese'), english: $('#txtEnglish'), putonghua: $('#txtPutonghua') },
@@ -140,7 +149,31 @@
     return [a.join(' '), b.join(' ') || w[w.length - 1]];
   }
 
+  /* 九巴／龍運用 DPIP 雙屏，城巴用走馬燈單屏 */
+  const isDPIP = () => !!trip && trip.scriptKey === 'KMB';
+
+  function showMode() {
+    const d = isDPIP();
+    el.dpip.hidden = !d;
+    el.legacy.hidden = d;
+    el.driverRow.hidden = !d;
+    el.dpip.classList.toggle('lwb', !!trip && trip.isLWB);
+  }
+
+  function setBig(zh, en) {
+    el.dmBigZh.textContent = zh;
+    el.dmBigEn.textContent = en || '';
+    el.dmBigEn.style.display = en ? '' : 'none';
+    el.dmBig.classList.remove('idle');
+    el.dmBig.classList.toggle('welcome', /WELCOME ABOARD/i.test(zh));
+  }
+
   function setScreen(zh, en) {
+    if (isDPIP()) {
+      // 城巴稿的系統提示在九巴屏上以中英對照呈現
+      setBig(zh, en);
+      return;
+    }
     const isNew = $('#styleNew').checked;
     el.screen.classList.toggle('old', !isNew);
     const zhP = splitZh(zh, isNew);
@@ -150,15 +183,71 @@
     el.screen.classList.toggle('rolling', zhP.length > 1);
     el.screen.classList.remove('idle');
   }
-  function setTag(zh, en) { el.screenTag.textContent = zh; el.screenTagEn.textContent = en; }
+  function setTag(zh, en) {
+    if (isDPIP()) { el.dmTagZh.textContent = zh; el.dmTagEn.textContent = en; return; }
+    el.screenTag.textContent = zh; el.screenTagEn.textContent = en;
+  }
+
+  /** 九巴屏的系統提示（請緊握扶手／轉乘）用中英並列 */
+  function dualScreen(zh, en) { setBig(zh, isDPIP() ? en : zh); }
+
   function idleScreen(msgZh, msgEn) {
+    if (isDPIP()) {
+      el.dmBig.classList.add('idle');
+      setBig(msgZh || '請先選擇路線', '');
+      setTag('待機', 'STANDBY');
+      return;
+    }
     el.screen.classList.add('idle');
     setScreen(msgZh || '請先選擇路線', msgEn || 'SELECT A ROUTE');
     setTag('待機', 'STANDBY');
   }
+
   function lamp(on) {
-    el.stopLamp.classList.toggle('off', !$('#showLamp').checked);
-    el.stopLamp.classList.toggle('on', !!on);
+    const show = $('#showLamp').checked;
+    [el.stopLamp, el.stopLampDpip].forEach(n => {
+      if (!n) return;
+      n.classList.toggle('off', !show);
+      n.classList.toggle('on', !!on);
+    });
+  }
+
+  /* 紅色路線圖 */
+  function renderMap() {
+    if (!trip) { el.dmTrack.innerHTML = ''; return; }
+    const n = trip.stops.length;
+    el.dmTrack.innerHTML = trip.stops.map((s, i) => {
+      const st = idx >= 0 ? (i < idx ? 'passed' : i === idx ? 'current' : '') : '';
+      const term = (i === 0 || i === n - 1) ? 'term' : '';
+      return `<div class="dm-node ${st} ${term}"><i></i><em>${s.en || ''}</em></div>`;
+    }).join('');
+    const cur = el.dmTrack.querySelector('.current') || el.dmTrack.firstElementChild;
+    if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }
+
+  /* 副屏：當前站 + 下兩站 */
+  function renderSec() {
+    if (!trip) { el.dpipSec.innerHTML = ''; return; }
+    const base = Math.max(0, idx);
+    const out = [];
+    for (let k = 0; k < 3; k++) {
+      const s = trip.stops[base + k];
+      if (!s) break;
+      out.push(`<div class="ds-row ${k === 0 ? 'cur' : ''}">
+        <span class="ds-num">${base + k + 1}</span>
+        <span class="ds-dot"></span>
+        <span class="ds-name"><b>${s.zh}</b><em>${s.en || ''}</em></span>
+      </div>`);
+    }
+    el.dpipSec.innerHTML = out.join('');
+  }
+
+  function setDriverInfo() {
+    const name = (el.driverName.value || '陳大文').trim();
+    const no = (el.staffNo.value || '1933').trim();
+    el.dmDriverZh.textContent = `${name}車長正為您服務`;
+    el.dmDriverEn.textContent = `Bus Captain ${name} is serving you`;
+    el.dmStaff.textContent = `員工編號 Staff No.: ${no}`;
   }
 
   function setScripts(map) {
@@ -207,6 +296,7 @@
     renderNext3();
   }
   function renderNext3() {
+    if (isDPIP()) { renderSec(); renderMap(); return; }
     if (!trip) { el.next3.innerHTML = ''; return; }
     const out = [];
     const base = Math.max(0, idx);   // 未開出時視為停在第 1 站，接下來是第 2 站起
@@ -230,20 +320,59 @@
   /* ==========================================================
      播放核心
      ========================================================== */
-  async function say(text, lang, t) {
+  /* ---------- 真實音檔：決定某段廣播要播哪些音檔 ---------- */
+  function audioPlan(kind, stop) {
+    if (!$('#useAudio').checked || !AnnAudio.state.ok || !trip) return null;
+    const P = AnnAudio.prefixMode;
+    const ph = AnnAudio.state.phrases || {};
+    switch (kind) {
+      case 'welcome':
+        return () => [AnnAudio.welcomeKey(trip.stops[0].code, trip.routeNo)];
+      case 'terminus':
+        return () => [AnnAudio.terminusKey(trip.stops[trip.stops.length - 1].code, trip.routeNo)];
+      case 'handrail':
+        return () => [AnnAudio.HANDRAIL_KEY];
+      case 'next': {
+        const stopK = AnnAudio.stopKey(stop.code);
+        if (P === 'full') return () => [stopK];
+        // 音檔只含站名時，若有「下一站」片語且真的有檔，就先播片語
+        return () => (ph.nextStop && AnnAudio.has(ph.nextStop) ? [ph.nextStop, stopK] : [stopK]);
+      }
+      case 'interchange':
+        return ph.interchange ? () => [ph.interchange] : null;
+      default:
+        return null;
+    }
+  }
+
+  async function say(text, lang, t, planFn) {
     if (!alive(t)) return;
     highlight(lang);
+    const keys = planFn ? planFn(lang) : null;
+    if (keys && keys.length) {
+      const urls = keys.map(k => AnnAudio.urlFor(k, lang));
+      // 該語言此段音檔齊全才用音檔，否則整段退回語音合成（避免真假聲混在一起）
+      if (urls.every(Boolean)) {
+        let ok = true;
+        for (const u of urls) {
+          const r = await AnnAudio.play(u, opt());
+          if (!r) { ok = false; break; }
+          if (!alive(t)) return;
+        }
+        if (ok && alive(t)) { await sleep(200); return; }
+      }
+    }
     await Speech.speak(text, lang, opt());
   }
 
-  async function announce(map, t, screenFn) {
+  async function announce(map, t, screenFn, planFn) {
     if (!alive(t)) return;
     setScripts(map);
     for (const lang of LANGS) {
       if (!alive(t)) return;
       if (!enabled(lang)) { if (screenFn) screenFn(lang); continue; }
       if (screenFn) screenFn(lang);
-      await say(map[lang], lang, t);
+      await say(map[lang], lang, t, planFn);
       if (!alive(t)) return;
       await sleep(180);
     }
@@ -257,7 +386,10 @@
     setTag('歡迎乘搭', 'WELCOME ONBOARD');
     startDots();
     const welcomeZh = trip.operatorZh === '城巴' ? '歡迎乘坐城巴' : '歡迎乘坐' + trip.operatorZh;
-    await announce(s.welcome(trip), t, () => setScreen(welcomeZh, 'WELCOME ONBOARD'));
+    await announce(s.welcome(trip), t, () => {
+      if (isDPIP()) setBig('WELCOME ABOARD', '');
+      else setScreen(welcomeZh, 'WELCOME ONBOARD');
+    }, audioPlan('welcome'));
     stopDots();
     if (alive(t) && trip.stops.length > 1) {
       await sleep(300);
@@ -271,14 +403,15 @@
     const s = scripts[trip.scriptKey];
     const stop = trip.stops[i];
     setTag('下一站', 'NEXT STOP');
-    await announce(s.next(trip, stop), t, lang => setScreen(stop.zh, stop.en));
+    preloadAround(i);
+    await announce(s.next(trip, stop), t, lang => setScreen(stop.zh, stop.en), audioPlan('next', stop));
     if (stop.note && alive(t) && LANGS.some(enabled)) {
       setTag('轉乘提示', 'INTERCHANGE');
-      await announce(s.interchange, t, () => setScreen('八達通轉乘', 'OCTOPUS INTERCHANGE'));
+      await announce(s.interchange, t, () => dualScreen('八達通轉乘', 'OCTOPUS INTERCHANGE'), audioPlan('interchange'));
     }
     if ($('#handrail').checked && alive(t)) {
       setTag('請緊握扶手', 'PLEASE HOLD THE HANDRAILS');
-      await announce(s.handrail, t, () => setScreen('請緊握扶手', 'PLEASE HOLD THE HANDRAILS'));
+      await announce(s.handrail, t, () => dualScreen('請緊握扶手', 'PLEASE HOLD THE HANDRAILS'), audioPlan('handrail'));
     }
     setTag('下一站', 'NEXT STOP');
     setScreen(stop.zh, stop.en);
@@ -301,10 +434,13 @@
     markStops(); updateProgress('終點站');
     const s = scripts[trip.scriptKey];
     setTag('終點站', 'TERMINUS'); stopDots(); lamp(true);
-    await announce(s.terminus(trip), t, lang =>
-      setScreen(lang === 'cantonese' || lang === 'putonghua' ? '巴士總站' : 'BUS TERMINUS',
-        lang === 'english' ? 'THANK YOU FOR TRAVELLING' : '多謝乘搭'));
-    setScreen('多謝乘搭', 'THANK YOU FOR TRAVELLING');
+    await announce(s.terminus(trip), t, lang => {
+      if (isDPIP()) setBig('多謝乘搭', 'THANK YOU FOR TRAVELLING');
+      else setScreen(lang === 'cantonese' || lang === 'putonghua' ? '巴士總站' : 'BUS TERMINUS',
+        lang === 'english' ? 'THANK YOU FOR TRAVELLING' : '多謝乘搭');
+    }, audioPlan('terminus'));
+    if (isDPIP()) setBig('多謝乘搭', 'THANK YOU FOR TRAVELLING');
+    else setScreen('多謝乘搭', 'THANK YOU FOR TRAVELLING');
     setAuto(false);
   }
 
@@ -325,8 +461,31 @@
     }
   }
 
+  /** 預載接下來幾站的音檔 */
+  function preloadAround(i) {
+    if (!trip) return;
+    const keys = [];
+    for (let k = 0; k <= 4; k++) {
+      const s = trip.stops[i + k];
+      if (s) keys.push(AnnAudio.stopKey(s.code));
+    }
+    AnnAudio.preload(keys);
+  }
+
+  function updateAudioInfo() {
+    const st = AnnAudio.state;
+    if (!st.ok) { el.audioInfo.textContent = st.msg || '尚未載入音檔'; return; }
+    const on = $('#useAudio').checked;
+    let txt = st.msg;
+    if (trip) {
+      const c = AnnAudio.stopCoverage(trip.stops);
+      txt += ` · 本路線覆蓋 ${c.hit}/${c.total}（${c.pct}%）`;
+    }
+    el.audioInfo.textContent = (on ? '🎵 ' : '🔇 ') + txt;
+  }
+
   function hardStop() {
-    token++; Speech.cancel(); stopDots(); highlight(null); setAuto(false);
+    token++; Speech.cancel(); AnnAudio.cancel(); stopDots(); highlight(null); setAuto(false);
   }
 
   function setAuto(v) {
@@ -347,7 +506,7 @@
       const op = resolveOperator(r.co, r.route);
       meta = Data.byId(id) || null;
       trip = {
-        id, routeNo: r.route, scriptKey: op.key,
+        id, routeNo: r.route, scriptKey: op.key, isLWB: op.zh === '龍運',
         operatorZh: op.zh, operatorLong: op.zhLong, operatorEn: op.en,
         originZh: r.origTc, originEn: r.origEn,
         destZh: r.destTc, destEn: r.destEn,
@@ -363,11 +522,19 @@
       el.crName.textContent = `${op.zh} ${r.route} 往 ${r.destTc}`;
       el.crBound.textContent = r.boundLabel || '';
       el.btnFlip.disabled = !Data.otherBound(meta || { _fallback: true });
+      // DPIP 主屏表頭
+      el.dmRoute.textContent = r.route;
+      el.dmDestZh.textContent = r.destTc;
+      el.dmDestEn.textContent = (r.destEn || r.destTc || '').toUpperCase();
+      el.dmCo.textContent = op.zh;
+      setDriverInfo();
       idx = -1;
+      showMode();
       renderStops(); updateProgress(); idleScreen('請按開出', 'PRESS DEPART');
       setScripts({ cantonese: '—', english: '—', putonghua: '—' });
       lamp(false);
       el.hint.textContent = `全程 ${r.stops.length} 個站`;
+      updateAudioInfo();
       refreshFavBtn();
       markSelected(id);
       saveCfg();
@@ -420,7 +587,7 @@
      設定
      ========================================================== */
   const CFG_KEYS = ['rate', 'vol', 'gap', 'langCantonese', 'langEnglish', 'langPutonghua',
-    'handrail', 'bellChk', 'styleNew', 'keepAwake', 'showLamp'];
+    'handrail', 'bellChk', 'styleNew', 'keepAwake', 'showLamp', 'driverName', 'staffNo', 'useAudio'];
   function loadCfgIntoUI() {
     const c = Data.loadCfg();
     CFG_KEYS.forEach(k => {
@@ -523,6 +690,15 @@
   el.btnFs.addEventListener('click', toggleFs);
 
   ['rate', 'vol', 'gap'].forEach(k => $('#' + k).addEventListener('input', () => { syncLabels(); saveCfg(); }));
+  ['driverName', 'staffNo'].forEach(k => $('#' + k).addEventListener('input', () => { setDriverInfo(); saveCfg(); }));
+  $('#useAudio').addEventListener('change', () => { updateAudioInfo(); saveCfg(); });
+  el.btnAudio.addEventListener('click', async () => {
+    el.btnAudio.disabled = true;
+    el.audioInfo.textContent = '正在載入 manifest…';
+    await AnnAudio.load(true);
+    updateAudioInfo();
+    el.btnAudio.disabled = false;
+  });
   CFG_KEYS.forEach(k => {
     const n = $('#' + k);
     if (!n) return;
@@ -567,6 +743,7 @@
     if (restore && Data.byId(restore)) selectRoute(restore);
     else if (st.mode === 'fallback' && window.ROUTES && window.ROUTES.length) selectRoute('FB|' + window.ROUTES[0].id);
     if ($('#keepAwake').checked) setWakeLock(true);
+    AnnAudio.load().then(() => updateAudioInfo());
   });
 
   setTimeout(() => {
