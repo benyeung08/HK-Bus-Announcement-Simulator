@@ -48,62 +48,223 @@
       <div class="sign-op" id="signOp">—</div>
     </div>
 
-    <!-- ===== 九巴／龍運：DPIP 動態顯示屏（雙屏） ===== -->
-    <div class="dpip" id="dpip" hidden>
-      <div class="dpip-main" id="dpipMain">
-        <div class="dm-head">
-          <div class="dm-route" id="dmRoute">—</div>
-          <div class="dm-dest">
-            <div class="dm-dest-line">
-              <span class="dm-to">往</span>
-              <span class="dm-dest-zh" id="dmDestZh">—</span>
+    <!-- ===== 九巴／龍運：BM-2013-KMB 報站機整機 ===== -->
+    <div class="rig" id="rig" hidden>
+
+      <!-- 車廂顯示屏 -->
+      <div class="dpip" id="dpip">
+        <div class="dpip-main" id="dpipMain">
+          <div class="dm-head">
+            <div class="dm-route" id="dmRoute">—</div>
+            <div class="dm-dest">
+              <div class="dm-dest-line">
+                <span class="dm-to">往</span>
+                <span class="dm-dest-zh" id="dmDestZh">—</span>
+              </div>
+              <div class="dm-dest-en" id="dmDestEn">—</div>
             </div>
-            <div class="dm-dest-en" id="dmDestEn">—</div>
+            <div class="dm-co" id="dmCo">九巴</div>
           </div>
-          <div class="dm-co" id="dmCo">九巴</div>
-        </div>
 
-        <div class="dm-map" id="dmMap">
-          <div class="dm-track" id="dmTrack"></div>
-        </div>
-
-        <div class="dm-big">
-          <div class="dm-big-tag">
-            <span id="dmTagZh">待機</span>
-            <span class="dm-tag-en" id="dmTagEn">STANDBY</span>
+          <div class="dm-map" id="dmMap">
+            <div class="dm-track" id="dmTrack"></div>
           </div>
-          <div class="dm-big-zh" id="dmBigZh">請先選擇路線</div>
-          <div class="dm-big-en" id="dmBigEn">SELECT A ROUTE</div>
+
+          <div class="dm-big">
+            <div class="dm-big-tag">
+              <span id="dmTagZh">待機</span>
+              <span class="dm-tag-en" id="dmTagEn">STANDBY</span>
+            </div>
+            <div class="dm-big-zh" id="dmBigZh">請先選擇路線</div>
+            <div class="dm-big-en" id="dmBigEn">SELECT A ROUTE</div>
+          </div>
+
+          <!-- 3站模式：主屏直接列三站 -->
+          <div class="dm-three" id="dmThree"></div>
+
+          <div class="dm-driver">
+            <span class="dm-drv-zh" id="dmDriverZh">陳車長正為您服務</span>
+            <span class="dm-drv-en" id="dmDriverEn">Bus Captain CHAN is serving you</span>
+            <span class="dm-staff" id="dmStaff">員工編號 Staff No.: 1933</span>
+          </div>
+          <div class="stop-lamp" id="stopLampDpip" title="下車燈"></div>
         </div>
 
-        <div class="dm-driver">
-          <span class="dm-drv-zh" id="dmDriverZh">九巴仔車長正為您服務</span>
-          <span class="dm-drv-en" id="dmDriverEn">Bus Captain KMB Boy is serving you</span>
-          <span class="dm-staff" id="dmStaff">員工編號 Staff No.: 1933</span>
-        </div>
-        <div class="stop-lamp" id="stopLampDpip" title="下車燈"></div>
+        <div class="dpip-sec" id="dpipSec"></div>
       </div>
 
-      <div class="dpip-sec" id="dpipSec"></div>
+      <!-- 主機面板 BM-2013-KMB1 -->
+      <div class="host">
+        <div class="host-head">
+          <span class="host-model">BM-2013-KMB1</span>
+          <span class="host-test"><i></i>測試中</span>
+        </div>
+        <div class="host-body">
+          <div class="host-left">
+            <div class="host-lcd">
+              <span id="rigLcd">1A</span>
+              <em id="rigLcdSub">READY</em>
+            </div>
+            <div class="host-ports"><span class="port pwr">PWR</span><span class="port usb">USB</span></div>
+            <div class="keypad">
+              <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button>
+              <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
+              <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button>
+              <button data-key="CLR" class="k-fn">CLR</button><button data-key="0">0</button><button data-key="ENT" class="k-fn ent">ENT</button>
+            </div>
+          </div>
+          <div class="host-right">
+            <div class="fn-grid">
+              <button class="fn g" id="rigStart">開車</button>
+              <button class="fn o" id="rigNext">下一站</button>
+              <button class="fn b" id="rigSkip">放站</button>
+              <button class="fn r" id="rigStop">停止</button>
+              <button class="fn n" id="rigBell">落車鐘</button>
+              <button class="fn n" id="rigTerm">終點站</button>
+            </div>
+            <div class="dpad">
+              <button data-dir="up" aria-label="音量＋">▲</button>
+              <button data-dir="left" aria-label="上一站">◀</button>
+              <button data-dir="down" aria-label="音量－">▼</button>
+              <button data-dir="right" aria-label="下一站">▶</button>
+            </div>
+          </div>
+        </div>
+        <p class="host-hint">數字鍵輸入路線編號 → <b>ENT</b> 載入；<b>◀ ▶</b> 上／下一站；<b>▲ ▼</b> 音量</p>
+      </div>
+
+      <!-- 遙控器 BM(RC)-2013-KMB1 -->
+      <div class="remote">
+        <div class="rm-model">BM(RC)-2013-KMB1</div>
+        <div class="rm-btns">
+          <button class="rm" id="rmNotice">乘客<br>通告</button>
+          <button class="rm" id="rmSkip">放站</button>
+          <button class="rm" id="rmDir">方向</button>
+          <button class="rm" id="rmBell">落車<br>鐘</button>
+        </div>
+      </div>
+
+      <!-- 車長設定 -->
+      <div class="rig-form">
+        <div class="rf-row">
+          <label class="rf"><span>中文姓氏</span><input type="text" id="inSurnameZh" value="陳" maxlength="4"></label>
+          <label class="rf"><span>英文姓氏</span><input type="text" id="inSurnameEn" value="CHAN" maxlength="12"></label>
+          <label class="rf"><span>員工編號</span><input type="text" id="inStaffNo" value="1933" maxlength="8"></label>
+          <button class="rf-ok" id="btnFormOk">確定</button>
+        </div>
+        <div class="rf-row rf-mode">
+          <span class="rf-label">PIDS顯示模式：</span>
+          <label class="chk"><input type="radio" name="pidsMode" value="std" checked><span>標準模式</span></label>
+          <label class="chk"><input type="radio" name="pidsMode" value="3stop"><span>3站模式</span></label>
+        </div>
+      </div>
     </div>
 
-    <!-- ===== 城巴：走馬燈顯示屏 ===== -->
-    <div class="legacy" id="legacy">
-      <div class="screen-box">
-        <div class="screen-tag">
-          <span id="screenTag">待機</span>
-          <span class="tag-en" id="screenTagEn">STANDBY</span>
-          <span class="tag-bound" id="screenBound"></span>
-        </div>
-        <div class="screen idle" id="screen">
-          <div class="scanlines"></div>
-          <div class="matrix">
-            <div class="line line-zh" id="lineZh"><span><b>請先選擇路線</b></span></div>
-            <div class="line line-en" id="lineEn"><span><b>SELECT A ROUTE</b></span></div>
+    <!-- ===== 城巴：LECIP 報站系統（輕觸式平板控制台） ===== -->
+    <div class="ctbrig" id="ctbRig" hidden>
+
+      <!-- 車廂 LED 顯示屏 MS-315A-CTB -->
+      <div class="legacy" id="legacy">
+        <div class="screen-box">
+          <div class="screen-tag">
+            <span id="screenTag">待機</span>
+            <span class="tag-en" id="screenTagEn">STANDBY</span>
+            <span class="tag-bound" id="screenBound"></span>
           </div>
-          <div class="stop-lamp" id="stopLamp" title="下車燈"></div>
+          <div class="screen idle" id="screen">
+            <div class="scanlines"></div>
+            <div class="matrix">
+              <div class="line line-zh" id="lineZh"><span><b>請先選擇路線</b></span></div>
+              <div class="line line-en" id="lineEn"><span><b>SELECT A ROUTE</b></span></div>
+            </div>
+            <div class="stop-lamp" id="stopLamp" title="下車燈"></div>
+          </div>
+          <div class="next3" id="next3"></div>
         </div>
-        <div class="next3" id="next3"></div>
+      </div>
+
+      <!-- 七吋輕觸式控制器（faytech）· LECIP -->
+      <div class="tab" id="ctbTab">
+        <div class="tab-bezel">
+          <div class="tab-bar">
+            <span class="tb-time" id="ctbTime">--:--</span>
+            <span class="tb-icons">
+              <i class="ic-gps" title="GPS">◎</i>
+              <i class="ic-net" title="4G">4G</i>
+              <i class="ic-bat" title="電量">▮</i>
+            </span>
+          </div>
+
+          <div class="tab-screen" id="ctbScreen">
+            <!-- 待機：城巴標誌 -->
+            <div class="ctb-logo" id="ctbLogo">
+              <span class="lg-mark">citybus</span>
+              <em>自動報站系統</em>
+              <small>請輸入路線資料</small>
+            </div>
+
+            <!-- 主畫面：列表形式 -->
+            <div class="ctb-main" id="ctbMain" hidden>
+              <div class="cm-head">
+                <div class="cm-rline">
+                  <span class="cm-route" id="cmRoute">—</span>
+                  <span class="cm-dir" id="cmDir">—</span>
+                </div>
+                <div class="cm-dest">
+                  <b id="cmDestZh">—</b>
+                  <em id="cmDestEn">—</em>
+                </div>
+              </div>
+              <div class="cm-now">
+                <span class="cn-ico" id="cnIco">🚌</span>
+                <span class="cn-tag" id="cnTag">待機</span>
+                <span class="cn-name" id="cnName">—</span>
+              </div>
+              <ol class="cm-list" id="cmList"></ol>
+            </div>
+          </div>
+
+          <!-- 觸控功能鍵 -->
+          <div class="tab-keys">
+            <div class="tk-row tk-mark">
+              <button class="tk m-bus" id="tkNext"><i>🚌</i><span>下一站</span></button>
+              <button class="tk m-stop" id="tkThis"><i>🚏</i><span>此站</span></button>
+              <button class="tk m-info" id="tkInfo"><i>ⓘ</i><span>資訊</span></button>
+              <button class="tk m-alert" id="tkAlert"><i>!</i><span>服務提示</span></button>
+            </div>
+            <div class="tk-row">
+              <button class="tk s" id="tkRoute">路線</button>
+              <button class="tk s" id="tkBell">落車鐘</button>
+              <button class="tk s" id="tkSkip">放站</button>
+              <button class="tk s" id="tkTerm">終點站</button>
+            </div>
+            <div class="tk-row">
+              <button class="tk s" id="tkIn">行入車廂</button>
+              <button class="tk s" id="tkPram">摺好嬰兒車</button>
+              <button class="tk s" id="tkStart">開車</button>
+              <button class="tk s" id="tkStopM">停止</button>
+            </div>
+          </div>
+        </div>
+        <p class="tab-model">LECIP 報站系統 · 七吋輕觸式控制器（faytech）｜螢幕圖案：🚌 下一站 · 🚏 此站 · ⓘ 資訊 · ! 服務調整</p>
+      </div>
+
+      <!-- 路線輸入（輕觸鍵盤） -->
+      <div class="route-pad" id="routePad" hidden>
+        <div class="rp-head">
+          <span class="rp-title">輸入路線編號</span>
+          <span class="rp-disp" id="rpDisp">—</span>
+        </div>
+        <div class="rp-pages">
+          <button class="rp-page on" data-page="num">123</button>
+          <button class="rp-page" data-page="abc">ABC</button>
+        </div>
+        <div class="rp-keys" id="rpKeys"></div>
+        <div class="rp-foot">
+          <button class="rp-b" id="rpClr">清除</button>
+          <button class="rp-b" id="rpClose">關閉</button>
+          <button class="rp-b ok" id="rpOk">確定</button>
+        </div>
       </div>
     </div>
 
@@ -171,17 +332,6 @@
       </label>
     </div>
 
-    <div class="row row-2" id="driverRow">
-      <label class="fld">
-        <span>車長姓名</span>
-        <input type="text" id="driverName" value="陳大文" maxlength="10" autocomplete="off">
-      </label>
-      <label class="fld">
-        <span>員工編號</span>
-        <input type="text" id="staffNo" value="1933" maxlength="8" autocomplete="off">
-      </label>
-    </div>
-
     <div class="audio-box">
       <div class="ab-head">
         <label class="chk"><input type="checkbox" id="useAudio" checked><span>使用真實報站音檔</span></label>
@@ -218,6 +368,19 @@
       <span><kbd>空格</kbd> 自動行車</span><span><kbd>B</kbd> 下車鐘</span>
       <span><kbd>F</kbd> 全屏</span><span><kbd>R</kbd> 切換方向</span>
       <span><kbd>Home</kbd> 回首站</span><span><kbd>Esc</kbd> 停止</span>
+    </div>
+    <h2 class="h2b">報站器對照</h2>
+    <div class="keygrid">
+      <span>數字鍵 → <kbd>ENT</kbd> 載入路線</span><span><kbd>CLR</kbd> 清除</span>
+      <span>綠 開車 / 橙 下一站</span><span>藍 放站（跳過一站）</span>
+      <span>紅 停止 / 終點站</span><span>◀ ▶ 上／下一站</span>
+      <span>▲ ▼ 音量</span><span>遙控：通告／放站／方向／鐘</span>
+    </div>
+    <h2 class="h2b">城巴輕觸式控制器</h2>
+    <div class="keygrid">
+      <span>🚌 下一站　🚏 此站</span><span>ⓘ 資訊　! 服務提示</span>
+      <span>路線：輕觸鍵盤輸入</span><span>快速鍵：行入車廂／摺嬰兒車</span>
+      <span>放站／落車鐘／終點站</span><span>點站名直接跳站</span>
     </div>
   </section>
 
