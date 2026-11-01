@@ -16,15 +16,24 @@
     screen: $('#screen'), lineZh: $('#lineZh'), lineEn: $('#lineEn'),
     screenTag: $('#screenTag'), screenTagEn: $('#screenTagEn'), screenBound: $('#screenBound'),
     stopLamp: $('#stopLamp'),
-    dpip: $('#dpip'), legacy: $('#legacy'), driverRow: $('#driverRow'),
+    dpip: $('#dpip'), legacy: $('#legacy'), rig: $('#rig'),
+    dmThree: $('#dmThree'),
+    rigLcd: $('#rigLcd'), rigLcdSub: $('#rigLcdSub'),
     dmRoute: $('#dmRoute'), dmDestZh: $('#dmDestZh'), dmDestEn: $('#dmDestEn'), dmCo: $('#dmCo'),
     dmTrack: $('#dmTrack'), dmMap: $('#dmMap'), dmBig: $('.dm-big'),
     dmTagZh: $('#dmTagZh'), dmTagEn: $('#dmTagEn'),
     dmBigZh: $('#dmBigZh'), dmBigEn: $('#dmBigEn'),
     dmDriverZh: $('#dmDriverZh'), dmDriverEn: $('#dmDriverEn'), dmStaff: $('#dmStaff'),
     dpipSec: $('#dpipSec'), stopLampDpip: $('#stopLampDpip'),
-    driverName: $('#driverName'), staffNo: $('#staffNo'),
+    inSurnameZh: $('#inSurnameZh'), inSurnameEn: $('#inSurnameEn'), inStaffNo: $('#inStaffNo'),
+    btnFormOk: $('#btnFormOk'),
     audioInfo: $('#audioInfo'), btnAudio: $('#btnAudio'),
+    ctbRig: $('#ctbRig'), ctbLogo: $('#ctbLogo'), ctbMain: $('#ctbMain'),
+    ctbTime: $('#ctbTime'), cmRoute: $('#cmRoute'), cmDir: $('#cmDir'),
+    cmDestZh: $('#cmDestZh'), cmDestEn: $('#cmDestEn'),
+    cnIco: $('#cnIco'), cnTag: $('#cnTag'), cnName: $('#cnName'),
+    cmList: $('#cmList'),
+    routePad: $('#routePad'), rpDisp: $('#rpDisp'), rpKeys: $('#rpKeys'),
     progressText: $('#progressText'), runDots: $('#runDots'),
     pbarFill: $('#pbarFill'), pbarDot: $('#pbarDot'), next3: $('#next3'),
     txt: { cantonese: $('#txtCantonese'), english: $('#txtEnglish'), putonghua: $('#txtPutonghua') },
@@ -88,6 +97,11 @@
         cantonese: '乘客可以喺呢個站，用八達通卡轉乘其他巴士路線。',
         english: 'Passengers may use their Octopus cards to interchange with other bus routes at this stop.',
         putonghua: '乘客可以在这个站，使用八达通卡转乘其他巴士路线。'
+      },
+      notice: {
+        cantonese: '各位乘客，請留意車廂內嘅乘客通告。',
+        english: 'Dear passengers, please note the passenger notices displayed inside the saloon.',
+        putonghua: '各位乘客，请留意车厢内的乘客通告。'
       },
       terminus: r => ({
         cantonese: `各位乘客，本班車已經到達${r.destZh}，請各位乘客落車，多謝乘搭${r.routeNo}線。`,
@@ -154,10 +168,38 @@
 
   function showMode() {
     const d = isDPIP();
-    el.dpip.hidden = !d;
-    el.legacy.hidden = d;
-    el.driverRow.hidden = !d;
+    el.rig.hidden = !d;
+    el.ctbRig.hidden = d;
     el.dpip.classList.toggle('lwb', !!trip && trip.isLWB);
+    applyPidsMode();
+    renderCtbList();
+    updateCtbScreen();
+  }
+
+  /* ---------- PIDS 顯示模式 ---------- */
+  const pidsMode = () => ($('input[name=pidsMode]:checked') || {}).value || 'std';
+
+  function applyPidsMode() {
+    const m = pidsMode();
+    el.dpip.classList.toggle('mode3', m === '3stop');
+    if (m === '3stop') renderThree(); else renderSec();
+  }
+
+  /** 3站模式：主屏直接列當前站 + 下兩站 */
+  function renderThree() {
+    if (!trip) { el.dmThree.innerHTML = ''; return; }
+    const base = Math.max(0, idx);
+    const out = [];
+    for (let k = 0; k < 3; k++) {
+      const s = trip.stops[base + k];
+      if (!s) break;
+      out.push(`<div class="dt-row ${k === 0 ? 'cur' : ''}">
+        <span class="dt-dot"></span>
+        <span class="dt-name"><b>${s.zh}</b><em>${s.en || ''}</em></span>
+        <span class="dt-idx">${base + k + 1}</span>
+      </div>`);
+    }
+    el.dmThree.innerHTML = out.join('');
   }
 
   function setBig(zh, en) {
@@ -168,12 +210,21 @@
     el.dmBig.classList.toggle('welcome', /WELCOME ABOARD/i.test(zh));
   }
 
+  /* 城巴屏：以實機圖案表示播報性質 */
+  let lastTag = { zh: '待機', en: 'STANDBY' };
+  const ICON_FOR = t =>
+    t === '下一站' ? '🚌' :
+    t === '此站' ? '🚏' :
+    t === '終點站' ? '🏁' :
+    t === '服務調整' ? '!' : 'ⓘ';
+
   function setScreen(zh, en) {
     if (isDPIP()) {
       // 城巴稿的系統提示在九巴屏上以中英對照呈現
       setBig(zh, en);
       return;
     }
+    setCtbNow(ICON_FOR(lastTag.zh), lastTag.zh, zh);
     const isNew = $('#styleNew').checked;
     el.screen.classList.toggle('old', !isNew);
     const zhP = splitZh(zh, isNew);
@@ -186,6 +237,7 @@
   function setTag(zh, en) {
     if (isDPIP()) { el.dmTagZh.textContent = zh; el.dmTagEn.textContent = en; return; }
     el.screenTag.textContent = zh; el.screenTagEn.textContent = en;
+    lastTag = { zh, en };
   }
 
   /** 九巴屏的系統提示（請緊握扶手／轉乘）用中英並列 */
@@ -201,6 +253,7 @@
     el.screen.classList.add('idle');
     setScreen(msgZh || '請先選擇路線', msgEn || 'SELECT A ROUTE');
     setTag('待機', 'STANDBY');
+    setCtbNow('🚌', '待機', msgZh || '請先選擇路線');
   }
 
   function lamp(on) {
@@ -243,11 +296,256 @@
   }
 
   function setDriverInfo() {
-    const name = (el.driverName.value || '陳大文').trim();
-    const no = (el.staffNo.value || '1933').trim();
-    el.dmDriverZh.textContent = `${name}車長正為您服務`;
-    el.dmDriverEn.textContent = `Bus Captain ${name} is serving you`;
+    const zh = (el.inSurnameZh.value || '陳').trim();
+    const en = (el.inSurnameEn.value || 'CHAN').trim().toUpperCase();
+    const no = (el.inStaffNo.value || '1933').trim();
+    el.dmDriverZh.textContent = `${zh}車長正為您服務`;
+    el.dmDriverEn.textContent = `Bus Captain ${en} is serving you`;
     el.dmStaff.textContent = `員工編號 Staff No.: ${no}`;
+  }
+
+  /* ==========================================================
+     城巴 LECIP 輕觸式報站器
+     實機以圖案表示播報性質：🚌 下一站是 · 🚏 此站是 · ⓘ 資訊 · ! 服務調整
+     ========================================================== */
+
+  /* 狀態欄時鐘 */
+  function tickClock() {
+    const d = new Date();
+    const p = n => String(n).padStart(2, '0');
+    el.ctbTime.textContent = `${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  /** 待機（未輸入路線）顯示城巴標誌，否則顯示主畫面 */
+  function updateCtbScreen() {
+    const has = !!trip && !isDPIP();
+    el.ctbLogo.hidden = has;
+    el.ctbMain.hidden = !has;
+    if (!has) return;
+    el.cmRoute.textContent = trip.routeNo;
+    el.cmDir.textContent = trip.bound || 'Outbound';
+    el.cmDestZh.textContent = trip.destZh;
+    el.cmDestEn.textContent = (trip.destEn || '').toUpperCase();
+  }
+
+  /** 主畫面站列表（可點擊跳站的觸控列表） */
+  function renderCtbList() {
+    if (!trip || isDPIP()) { el.cmList.innerHTML = ''; return; }
+    el.cmList.innerHTML = trip.stops.map((s, i) => `
+      <li data-i="${i}" class="${idx >= 0 ? (i < idx ? 'passed' : i === idx ? 'cur' : '') : ''}">
+        <span class="ci">${i + 1}</span>
+        <span class="cn">${s.zh}<em>${s.en || ''}</em></span>
+      </li>`).join('');
+    $$('#cmList li').forEach(li => li.addEventListener('click', () => {
+      const i = +li.dataset.i;
+      hardStop();
+      if (i === 0) { welcome(++token); return; }
+      idx = i - 1; advance();
+    }));
+    const cur = el.cmList.querySelector('li.cur');
+    if (cur) cur.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  /** 當前播報列：圖案 + 標籤 + 站名 */
+  function setCtbNow(icon, tag, name) {
+    el.cnIco.textContent = icon;
+    el.cnTag.textContent = tag;
+    el.cnName.textContent = name;
+  }
+
+  /* ---------- 路線輸入輕觸鍵盤 ---------- */
+  const NUM_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'A', 'B'];
+  const ABC_KEYS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'S', 'X', 'R'];
+  let ctbBuf = '', ctbPage = 'num';
+
+  function renderPadKeys() {
+    const keys = ctbPage === 'num' ? NUM_KEYS : ABC_KEYS;
+    el.rpKeys.className = 'rp-keys' + (ctbPage === 'abc' ? ' abc' : '');
+    el.rpKeys.innerHTML = keys.map(k => `<button class="rp-k" data-k="${k}">${k}</button>`).join('');
+    $$('#rpKeys .rp-k').forEach(b => b.addEventListener('click', () => {
+      if (ctbBuf.length >= 5) return;
+      ctbBuf += b.dataset.k;
+      el.rpDisp.textContent = ctbBuf;
+    }));
+  }
+  function openPad() {
+    ctbBuf = '';
+    ctbPage = 'num';
+    el.rpDisp.textContent = '—';
+    renderPadKeys();
+    el.routePad.hidden = false;
+    $$('.rp-page').forEach(p => p.classList.toggle('on', p.dataset.page === ctbPage));
+  }
+  function closePad() { el.routePad.hidden = true; }
+
+  /** 城巴路線載入：完全相符優先，其次前綴 */
+  function loadCtbRoute(no) {
+    const list = Data.search(no, 'CTB');
+    const up = no.toUpperCase();
+    const hit = list.find(r => r.route.toUpperCase() === up)
+      || list.find(r => r.route.toUpperCase().startsWith(up))
+      || list[0];
+    if (!hit) {
+      el.hint.textContent = `找不到城巴路線 ${no}`;
+      return;
+    }
+    selectRoute(hit.id);
+    closePad();
+  }
+
+  /* ---------- 城巴特別廣播（車長快速鍵） ---------- */
+  const CTB_SPOTS = {
+    info: {
+      icon: 'ⓘ', tag: '資訊',
+      cantonese: '各位乘客，請留意車廂內張貼的乘客通告，多謝合作。',
+      english: 'Dear passengers, please refer to the passenger notices displayed inside the bus. Thank you.',
+      putonghua: '各位乘客，请留意车厢内张贴的乘客通告，谢谢合作。'
+    },
+    alert: {
+      icon: '!', tag: '服務調整',
+      cantonese: '各位乘客，因應路面情況，本線可能需要改道行駛，敬請留意。',
+      english: 'Dear passengers, due to traffic conditions, this route may be diverted. Thank you for your attention.',
+      putonghua: '各位乘客，因应路面情况，本线可能需要改道行驶，敬请留意。'
+    },
+    in: {
+      icon: 'ⓘ', tag: '提示',
+      cantonese: '請各位乘客行入車廂中間，多謝合作。',
+      english: 'Please move to the middle of the saloon. Thank you for your cooperation.',
+      putonghua: '请各位乘客行入车厢中间，谢谢合作。'
+    },
+    pram: {
+      icon: 'ⓘ', tag: '提示',
+      cantonese: '請各位乘客將嬰兒車摺好，多謝合作。',
+      english: 'Please fold up your baby strollers. Thank you for your cooperation.',
+      putonghua: '请各位乘客将婴儿车折好，谢谢合作。'
+    }
+  };
+
+  /** 播出一段特別廣播（圖案鍵） */
+  function ctbSpot(kind) {
+    if (!trip) return;
+    const s = CTB_SPOTS[kind];
+    if (!s) return;
+    hardStop();
+    const t = ++token;
+    const restoreName = idx >= 0 ? trip.stops[idx].zh : '—';
+    setTag(s.tag, s.tag === '資訊' ? 'INFORMATION' : 'NOTICE');
+    setCtbNow(s.icon, s.tag, s.tag);
+    if (isDPIP()) setBig(s.tag, s.tag === '資訊' ? 'INFORMATION' : 'NOTICE');
+    else {
+      el.lineZh.innerHTML = `<span><b>${s.tag}</b></span>`;
+      el.lineEn.innerHTML = `<span><b>${s.tag === '資訊' ? 'INFORMATION' : 'NOTICE'}</b></span>`;
+      el.screen.classList.remove('idle');
+    }
+    announce({ cantonese: s.cantonese, english: s.english, putonghua: s.putonghua },
+      t, () => {}, null).then(() => {
+        if (!alive(t)) return;
+        if (idx >= 0) {
+          setTag('此站', 'THIS STOP');
+          setScreen(trip.stops[idx].zh, trip.stops[idx].en);
+          setCtbNow('🚏', '此站', trip.stops[idx].zh);
+        } else {
+          setCtbNow('🚌', '待機', restoreName);
+        }
+      });
+  }
+
+  /** 城巴「此站」鍵：重播目前站的站名 */
+  function ctbThisStop() {
+    if (!trip || idx < 0) return;
+    hardStop();
+    const t = ++token;
+    const stop = trip.stops[idx];
+    setTag('此站', 'THIS STOP');
+    setCtbNow('🚏', '此站', stop.zh);
+    announce(scripts.CTB.next(trip, stop), t, () => setScreen(stop.zh, stop.en), audioPlan('next', stop));
+  }
+
+  /* ==========================================================
+     報站器（BM-2013-KMB1 / BM(RC)-2013-KMB1）
+     ========================================================== */
+
+  /* 主機 LCD：顯示目前輸入的路線號 + 狀態 */
+  function setLcd(main, sub) {
+    el.rigLcd.textContent = main;
+    if (sub != null) el.rigLcdSub.textContent = sub;
+  }
+  let keyBuf = '';
+  function lcdRefresh() {
+    if (trip) setLcd(trip.routeNo, `${Math.max(0, idx) + 1}/${trip.stops.length} ${trip.destZh || ''}`.slice(0, 16));
+    else setLcd(keyBuf || '—', 'READY');
+  }
+
+  /** 數字鍵：輸入路線編號，ENT 載入 */
+  function padKey(k) {
+    if (k === 'CLR') {
+      keyBuf = '';
+      setLcd('—', 'CLEARED');
+      return;
+    }
+    if (k === 'ENT') {
+      if (!keyBuf) { setLcd('—', 'NO INPUT'); return; }
+      loadByRouteNo(keyBuf);
+      return;
+    }
+    if (keyBuf.length >= 5) return;
+    keyBuf += k;
+    setLcd(keyBuf, 'INPUT');
+  }
+
+  /** 用路線號直接載入：完全相符優先，其次前綴（數字鍵盤打不出字母） */
+  function loadByRouteNo(no) {
+    const co = $('#co').value === 'CTB' ? 'CTB' : 'ALL';
+    const up = no.toUpperCase();
+    const list = Data.search(no, co);
+    const hit = list.find(r => r.route.toUpperCase() === up)
+      || list.find(r => r.route.toUpperCase().startsWith(up))
+      || list[0];
+    if (!hit) {
+      setLcd(no.toUpperCase(), 'NOT FOUND');
+      el.hint.textContent = `找不到路線 ${no}`;
+      setTimeout(lcdRefresh, 1800);
+      return;
+    }
+    setLcd(hit.route, 'LOADING');
+    el.hint.textContent = '正在載入…';
+    selectRoute(hit.id);
+  }
+
+  /** 放站：跳過下一站（不停站，直接廣播下下站） */
+  function skipStop() {
+    if (!trip) return;
+    hardStop();
+    if (idx + 1 >= trip.stops.length - 1) {
+      setLcd(trip.routeNo, 'LAST STOP');
+      terminus(++token);
+      return;
+    }
+    idx += 1;                       // 視為已過一站
+    setLcd(trip.routeNo, 'SKIPPED');
+    el.hint.textContent = `已放站：${trip.stops[idx].zh}`;
+    markStops(); updateProgress('放站：' + trip.stops[idx].zh);
+    advance();
+  }
+
+  /** 乘客通告（遙控器） */
+  function passengerNotice() {
+    if (!trip) return;
+    hardStop();
+    const t = ++token;
+    setTag('乘客通告', 'NOTICE');
+    setBig('乘客通告', 'PASSENGER NOTICE');
+    const map = {
+      cantonese: '各位乘客，請留意車廂內的乘客通告，多謝合作。',
+      english: 'Dear passengers, please refer to the passenger notices inside the bus. Thank you for your cooperation.',
+      putonghua: '各位乘客，请留意车厢内的乘客通告，谢谢合作。'
+    };
+    setLcd(trip.routeNo, 'NOTICE');
+    announce(map, t, () => {}, null).then(() => {
+      if (!alive(t)) return;
+      if (idx >= 0) { setTag('此站', 'THIS STOP'); setScreen(trip.stops[idx].zh, trip.stops[idx].en); }
+      lcdRefresh();
+    });
   }
 
   function setScripts(map) {
@@ -281,6 +579,8 @@
     });
     const cur = el.stopList.querySelector('li.current');
     if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    renderCtbList();
+    lcdRefresh();
   }
   function updateProgress(extra) {
     if (!trip) return;
@@ -296,7 +596,7 @@
     renderNext3();
   }
   function renderNext3() {
-    if (isDPIP()) { renderSec(); renderMap(); return; }
+    if (isDPIP()) { renderMap(); if (pidsMode() === '3stop') renderThree(); else renderSec(); return; }
     if (!trip) { el.next3.innerHTML = ''; return; }
     const out = [];
     const base = Math.max(0, idx);   // 未開出時視為停在第 1 站，接下來是第 2 站起
@@ -537,9 +837,12 @@
       updateAudioInfo();
       refreshFavBtn();
       markSelected(id);
+      keyBuf = '';
+      lcdRefresh();
       saveCfg();
     } catch (e) {
       el.hint.textContent = '載入失敗：' + (e && e.message ? e.message : '未知錯誤');
+      setLcd(el.rigLcd.textContent, 'LOAD FAIL');
     } finally {
       loading = false;
     }
@@ -587,7 +890,8 @@
      設定
      ========================================================== */
   const CFG_KEYS = ['rate', 'vol', 'gap', 'langCantonese', 'langEnglish', 'langPutonghua',
-    'handrail', 'bellChk', 'styleNew', 'keepAwake', 'showLamp', 'driverName', 'staffNo', 'useAudio'];
+    'handrail', 'bellChk', 'styleNew', 'keepAwake', 'showLamp',
+    'inSurnameZh', 'inSurnameEn', 'inStaffNo', 'useAudio'];
   function loadCfgIntoUI() {
     const c = Data.loadCfg();
     CFG_KEYS.forEach(k => {
@@ -596,6 +900,10 @@
       if (node.type === 'checkbox') { if (k in c) node.checked = !!c[k]; }
       else if (c[k] != null) node.value = c[k];
     });
+    if (c.pidsMode) {
+      const r = $(`input[name=pidsMode][value="${c.pidsMode}"]`);
+      if (r) r.checked = true;
+    }
     syncLabels();
     if (c.routeId) el.q.dataset.restore = c.routeId;
   }
@@ -606,6 +914,7 @@
       if (!node) return;
       c[k] = node.type === 'checkbox' ? node.checked : node.value;
     });
+    c.pidsMode = pidsMode();
     if (trip) c.routeId = trip.id;
     Data.saveCfg(c);
   }
@@ -690,7 +999,104 @@
   el.btnFs.addEventListener('click', toggleFs);
 
   ['rate', 'vol', 'gap'].forEach(k => $('#' + k).addEventListener('input', () => { syncLabels(); saveCfg(); }));
-  ['driverName', 'staffNo'].forEach(k => $('#' + k).addEventListener('input', () => { setDriverInfo(); saveCfg(); }));
+  /* ---------- 城巴 LECIP 輕觸式控制器 ---------- */
+  $('#tkNext').addEventListener('click', () => {
+    Speech.loadVoices(); if (!trip) return;
+    if (idx < 0) { hardStop(); welcome(++token); return; }
+    advance();
+  });
+  $('#tkThis').addEventListener('click', () => { Speech.loadVoices(); ctbThisStop(); });
+  $('#tkInfo').addEventListener('click', () => { Speech.loadVoices(); ctbSpot('info'); });
+  $('#tkAlert').addEventListener('click', () => { Speech.loadVoices(); ctbSpot('alert'); });
+  $('#tkIn').addEventListener('click', () => { Speech.loadVoices(); ctbSpot('in'); });
+  $('#tkPram').addEventListener('click', () => { Speech.loadVoices(); ctbSpot('pram'); });
+  $('#tkBell').addEventListener('click', () => Speech.bell());
+  $('#tkSkip').addEventListener('click', () => { Speech.loadVoices(); skipStop(); });
+  $('#tkTerm').addEventListener('click', () => {
+    Speech.loadVoices(); if (!trip) return;
+    hardStop(); terminus(++token);
+  });
+  $('#tkStart').addEventListener('click', () => {
+    Speech.loadVoices(); if (!trip) return;
+    hardStop(); welcome(++token);
+  });
+  $('#tkStopM').addEventListener('click', () => el.btnStop.click());
+
+  /* 路線輸入鍵盤 */
+  $('#tkRoute').addEventListener('click', () => {
+    el.routePad.hidden ? openPad() : closePad();
+  });
+  $$('.rp-page').forEach(p => p.addEventListener('click', () => {
+    ctbPage = p.dataset.page;
+    renderPadKeys();
+    $$('.rp-page').forEach(x => x.classList.toggle('on', x.dataset.page === ctbPage));
+  }));
+  $('#rpClr').addEventListener('click', () => { ctbBuf = ''; el.rpDisp.textContent = '—'; });
+  $('#rpClose').addEventListener('click', closePad);
+  $('#rpOk').addEventListener('click', () => {
+    if (!ctbBuf) { el.hint.textContent = '請先輸入路線編號'; return; }
+    loadCtbRoute(ctbBuf);
+  });
+
+  /* ---------- 報站器：數字鍵盤 ---------- */
+  $$('.keypad button').forEach(b => b.addEventListener('click', () => padKey(b.dataset.key)));
+
+  /* ---------- 報站器：功能鍵 ---------- */
+  $('#rigStart').addEventListener('click', () => {
+    Speech.loadVoices(); if (!trip) return;
+    hardStop(); setLcd(trip.routeNo, 'DEPARTED');
+    welcome(++token);
+  });
+  $('#rigNext').addEventListener('click', () => {
+    Speech.loadVoices(); if (!trip) return;
+    if (idx < 0) { hardStop(); welcome(++token); return; }
+    advance(); lcdRefresh();
+  });
+  $('#rigSkip').addEventListener('click', () => { Speech.loadVoices(); skipStop(); });
+  $('#rigStop').addEventListener('click', () => { el.btnStop.click(); lcdRefresh(); });
+  $('#rigBell').addEventListener('click', () => Speech.bell());
+  $('#rigTerm').addEventListener('click', () => {
+    Speech.loadVoices(); if (!trip) return;
+    hardStop(); setLcd(trip.routeNo, 'TERMINUS');
+    terminus(++token);
+  });
+
+  /* ---------- 報站器：方向鍵 ---------- */
+  $$('.dpad button').forEach(b => b.addEventListener('click', () => {
+    const d = b.dataset.dir;
+    if (d === 'left' || d === 'right') {
+      (d === 'right' ? el.btnNext : el.btnPrev).click();
+      lcdRefresh();
+    } else {
+      const step = d === 'up' ? 0.1 : -0.1;
+      el.vol.value = Math.max(0, Math.min(1, (+el.vol.value + step)));
+      syncLabels(); saveCfg();
+      setLcd(el.rigLcd.textContent, 'VOL ' + Math.round(el.vol.value * 100) + '%');
+    }
+  }));
+
+  /* ---------- 遙控器 BM(RC)-2013-KMB1 ---------- */
+  $('#rmNotice').addEventListener('click', passengerNotice);
+  $('#rmSkip').addEventListener('click', () => { Speech.loadVoices(); skipStop(); });
+  $('#rmDir').addEventListener('click', () => { el.btnFlip.click(); lcdRefresh(); });
+  $('#rmBell').addEventListener('click', () => Speech.bell());
+
+  /* ---------- 車長設定表單 ---------- */
+  el.btnFormOk.addEventListener('click', () => {
+    setDriverInfo();
+    saveCfg();
+    el.hint.textContent = '車長資料已更新';
+    setLcd(el.rigLcd.textContent, 'SET OK');
+    setTimeout(lcdRefresh, 1400);
+  });
+
+  /* ---------- PIDS 顯示模式 ---------- */
+  $$('input[name=pidsMode]').forEach(r => r.addEventListener('change', () => {
+    applyPidsMode();
+    saveCfg();
+  }));
+
+  ['inSurnameZh', 'inSurnameEn', 'inStaffNo'].forEach(k => $('#' + k).addEventListener('change', () => saveCfg()));
   $('#useAudio').addEventListener('change', () => { updateAudioInfo(); saveCfg(); });
   el.btnAudio.addEventListener('click', async () => {
     el.btnAudio.disabled = true;
@@ -732,6 +1138,12 @@
      ========================================================== */
   loadCfgIntoUI();
   renderFavs();
+  setDriverInfo();
+  applyPidsMode();
+  lcdRefresh();
+  tickClock();
+  setInterval(tickClock, 30000);
+  renderPadKeys();
 
   Data.init(st => {
     el.status.textContent = st.msg;
