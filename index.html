@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>香港巴士報站模擬器 | HK Bus Stop Announcement Simulator</title>
+<meta name="description" content="模擬九巴、城巴車廂報站系統：三語廣播、點陣顯示屏、下車鐘，全部在瀏覽器內即時合成。">
+<meta name="theme-color" content="#101014">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23101014'/%3E%3Crect x='10' y='14' width='44' height='30' rx='5' fill='%23ff6a13'/%3E%3Ctext x='32' y='35' font-size='18' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='%23101014'%3E1A%3C/text%3E%3Ccircle cx='19' cy='50' r='5' fill='%23555'/%3E%3Ccircle cx='45' cy='50' r='5' fill='%23555'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <div class="head-title">
+      <span class="dot"></span>
+      <h1>香港巴士報站模擬器</h1>
+    </div>
+    <p class="sub">九巴 · 城巴車廂報站系統模擬｜廣東話 · 英文 · 普通話</p>
+  </header>
+
+  <!-- 車頭電牌 -->
+  <section class="head-sign" id="headSign">
+    <div class="sign-route"><span id="signRoute">1A</span></div>
+    <div class="sign-dest">
+      <div class="sign-dest-zh" id="signDestZh">尖沙咀碼頭</div>
+      <div class="sign-dest-en" id="signDestEn">STAR FERRY</div>
+    </div>
+    <div class="sign-op" id="signOp">九巴 KMB</div>
+  </section>
+
+  <!-- 車廂報站顯示屏 -->
+  <section class="screen-box">
+    <div class="screen-tag"><span id="screenTag">下一站</span> <span class="tag-en" id="screenTagEn">NEXT STOP</span></div>
+    <div class="screen" id="screen">
+      <div class="scanlines"></div>
+      <div class="matrix">
+        <div class="line line-zh" id="lineZh"><span></span></div>
+        <div class="line line-en" id="lineEn"><span></span></div>
+      </div>
+    </div>
+    <div class="screen-foot">
+      <span id="progressText">尚未開出</span>
+      <span class="dots" id="runDots"></span>
+    </div>
+  </section>
+
+  <!-- 三語廣播字幕 -->
+  <section class="script" id="script">
+    <div class="line-item" data-lang="cantonese">
+      <span class="badge">粵</span>
+      <p class="txt" id="txtCantonese">按「開出總站」開始模擬行程</p>
+    </div>
+    <div class="line-item" data-lang="english">
+      <span class="badge">EN</span>
+      <p class="txt" id="txtEnglish">Press “Depart” to start the trip</p>
+    </div>
+    <div class="line-item" data-lang="putonghua">
+      <span class="badge">國</span>
+      <p class="txt" id="txtPutonghua">按「开出总站」开始模拟行程</p>
+    </div>
+  </section>
+
+  <!-- 控制面板 -->
+  <section class="panel">
+    <div class="row">
+      <label class="fld">
+        <span>路線班次</span>
+        <select id="routeSel"></select>
+      </label>
+    </div>
+
+    <div class="row row-2">
+      <label class="fld">
+        <span>語速 <b id="rateVal">1.0×</b></span>
+        <input type="range" id="rate" min="0.6" max="1.6" step="0.1" value="1">
+      </label>
+      <label class="fld">
+        <span>音量 <b id="volVal">100%</b></span>
+        <input type="range" id="vol" min="0" max="1" step="0.05" value="1">
+      </label>
+    </div>
+
+    <div class="row toggles">
+      <label class="chk"><input type="checkbox" id="langCantonese" checked><span>廣東話</span></label>
+      <label class="chk"><input type="checkbox" id="langEnglish" checked><span>English</span></label>
+      <label class="chk"><input type="checkbox" id="langPutonghua" checked><span>普通話</span></label>
+      <label class="chk"><input type="checkbox" id="handrail" checked><span>請緊握扶手</span></label>
+      <label class="chk"><input type="checkbox" id="bellChk" checked><span>下車鐘</span></label>
+    </div>
+
+    <div class="btns">
+      <button class="btn primary" id="btnStart">▶ 開出總站</button>
+      <button class="btn" id="btnNext">⏭ 下一站</button>
+      <button class="btn" id="btnTerminus">🏁 到達終點站</button>
+      <button class="btn" id="btnAuto">🔁 自動行車</button>
+      <button class="btn ghost" id="btnBell">🔔 下車鐘</button>
+      <button class="btn ghost" id="btnStop">⏹ 停止</button>
+    </div>
+
+    <p class="hint" id="hint"></p>
+  </section>
+
+  <!-- 沿途車站 -->
+  <section class="timeline">
+    <h2>沿途車站 <small>（點擊可跳至該站）</small></h2>
+    <ol id="stopList"></ol>
+  </section>
+
+  <footer class="foot">
+    <p>報站用語參考九巴／龍運（BM-2013-KMB）與城巴／新巴（Telargo）實際廣播稿格式；語音由瀏覽器即時合成，非官方錄音。</p>
+    <p class="mono">站名資料可在 <code>assets/js/routes.js</code> 自行增修。</p>
+  </footer>
+</div>
+
+<script src="assets/js/routes.js"></script>
+<script src="assets/js/speech.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
